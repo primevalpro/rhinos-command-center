@@ -918,9 +918,8 @@ function computeFloorGrades(){
   const teGrades  = assignQuintileGrades(TEAMS,'_fcTE');
   const flexGrades= assignQuintileGrades(TEAMS,'_fcFlex');
 
-  // ── Step 3: write floors back to team objects ──
+  // ── Step 3: write positional floors back to team objects ──
   const GRADE_VAL={S:4,A:3,B:2,C:1};
-  const GRADE_LET=['C','B','A','S']; // index 0=C,1=B,2=A,3=S
 
   TEAMS.forEach(t=>{
     t.qb.floor   = qbGrades[t.id]   || 'C';
@@ -929,28 +928,36 @@ function computeFloorGrades(){
     t.te.floor   = teGrades[t.id]   || 'C';
     t.flex.floor = flexGrades[t.id] || 'C';
 
-    // ── Overall: weighted composite ──
-    const wScore =
+    // Store weighted composite score for overall quintile (computed below)
+    t._wScore =
       GRADE_VAL[t.qb.floor]   * FLOOR_WEIGHTS.qb  +
       GRADE_VAL[t.rb.floor]   * FLOOR_WEIGHTS.rb  +
       GRADE_VAL[t.wr.floor]   * FLOOR_WEIGHTS.wr  +
       GRADE_VAL[t.te.floor]   * FLOOR_WEIGHTS.te  +
       GRADE_VAL[t.flex.floor] * FLOOR_WEIGHTS.flex;
-    // Round to nearest grade (1-4 scale)
-    const compositeIdx = Math.min(3, Math.max(0, Math.round(wScore)-1));
-    t.overall.floor = GRADE_LET[compositeIdx];
 
     // ── Balance indicator: spread of 5 position floors ──
     const posGrades=[t.qb.floor,t.rb.floor,t.wr.floor,t.te.floor,t.flex.floor];
     const vals=posGrades.map(g=>GRADE_VAL[g]);
     const maxV=Math.max(...vals), minV=Math.min(...vals);
-    const spread=maxV-minV; // 0=balanced, 3=extreme spread
+    const spread=maxV-minV;
     t.overall.balance = spread===0?'even':spread===1?'steady':spread===2?'uneven':'lopsided';
-    t.overall.posFloors = posGrades; // store for display
-
-    // Clean up temp keys
-    delete t._fcQB; delete t._fcRB; delete t._fcWR; delete t._fcTE; delete t._fcFlex;
+    t.overall.posFloors = posGrades;
   });
+
+  // ── Step 4: overall floor via quintile on composite scores ──
+  // S=top 2, A=next 3, B=middle 4, C=bottom 3
+  const sortedByScore=[...TEAMS].sort((a,b)=>b._wScore-a._wScore);
+  sortedByScore.forEach((t,i)=>{
+    if(i<2)t.overall.floor='S';
+    else if(i<5)t.overall.floor='A';
+    else if(i<9)t.overall.floor='B';
+    else t.overall.floor='C';
+    delete t._wScore;
+  });
+
+  // Clean up temp keys
+  TEAMS.forEach(t=>{delete t._fcQB;delete t._fcRB;delete t._fcWR;delete t._fcTE;delete t._fcFlex;});
 }
 // ── SLEEPER PLAYER AGES ───────────────────────────────────────────────────────
 // Ages are derived dynamically from Sleeper's player database (birth_date field)
