@@ -1,0 +1,2015 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rhinos Dynasty Command Center</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0c0c0c;color:#e8e6e0;font-family:'Barlow',sans-serif;min-height:100vh}
+.app-header{background:#111;border-bottom:1px solid #222;padding:14px 24px 0;position:sticky;top:0;z-index:100}
+.header-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px}
+.logo{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:20px;letter-spacing:.04em;color:#1D9E75;text-transform:uppercase}
+.header-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.badge-us{font-family:'DM Mono',monospace;font-size:11px;background:#1D9E75;color:#04342C;padding:3px 8px;border-radius:4px;font-weight:500}
+.tabs{display:flex;gap:0;overflow-x:auto}
+.tab{font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;padding:8px 16px;cursor:pointer;border-bottom:2px solid transparent;color:#666;background:none;border-top:none;border-left:none;border-right:none;transition:color .15s;white-space:nowrap}
+.tab:hover{color:#ccc}
+.tab.active{color:#1D9E75;border-bottom-color:#1D9E75}
+.content{padding:20px 24px;max-width:1600px;margin:0 auto}
+.btn{font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;padding:6px 14px;border-radius:4px;cursor:pointer;transition:all .15s;border:1px solid}
+.btn-primary{background:#0a3d28;border-color:#1D9E75;color:#1D9E75}
+.btn-primary:hover{background:#0f5538}
+.btn-secondary{background:#161616;border-color:#2a2a2a;color:#888}
+.btn-secondary:hover{border-color:#444;color:#ccc}
+.btn-copy{background:#1a1a2e;border-color:#4a9ede;color:#4a9ede}
+.btn-copy:hover{background:#1e2a45}
+.btn-import{background:#1e0a3a;border-color:#9b6aee;color:#9b6aee}
+.btn-import:hover{background:#2a1050}
+.btn-sm{padding:4px 10px;font-size:11px}
+.grade{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;padding:2px 7px;border-radius:3px;display:inline-block}
+.grade-S{background:#0a3d28;color:#1D9E75}
+.grade-A{background:#0a1e3a;color:#4a9ede}
+.grade-B{background:#2a2826;color:#888}
+.grade-C{background:#3a1510;color:#d06040}
+.tag{font-family:'DM Mono',monospace;font-size:10px;padding:2px 6px;border-radius:3px;font-weight:500;display:inline-block}
+.tag-fragile{background:#3a1510;color:#d06040}
+.tag-robust{background:#0a3d28;color:#1D9E75}
+.tag-antifragile{background:#0a1e3a;color:#4a9ede}
+.tag-low{background:#2a2826;color:#666}
+.tag-medium{background:#3a2a08;color:#d4950a}
+.tag-high{background:#0a3d28;color:#1D9E75}
+.tag-minimal{background:#2a2826;color:#666}
+.tag-moderate{background:#0a1e3a;color:#4a9ede}
+.tag-high-delta{background:#0a3d28;color:#1D9E75}
+.tag-extreme{background:#1e0a3a;color:#9b6aee}
+.tag-open{background:#0a3d28;color:#1D9E75}
+.tag-opening{background:#0a1e3a;color:#4a9ede}
+.tag-retool{background:#3a2a08;color:#d4950a}
+.tag-rebuild{background:#3a1510;color:#d06040}
+.tag-warning{background:#3a2a08;color:#d4950a}
+.card{background:#161616;border:1px solid #222;border-radius:8px;padding:14px;margin-bottom:10px}
+.card.us{border-color:#1D9E75;background:#0d1f18}
+.section-label{font-family:'Barlow Condensed',sans-serif;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#555;margin-bottom:8px}
+.sub-header{font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:600;color:#ccc;margin-bottom:10px;letter-spacing:.04em}
+.divider{height:1px;background:#1e1e1e;margin:16px 0}
+.filter-row{display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center}
+.filter-btn{font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;padding:5px 12px;background:#161616;border:1px solid #2a2a2a;color:#666;border-radius:4px;cursor:pointer;transition:all .15s}
+.filter-btn:hover{border-color:#444;color:#ccc}
+.filter-btn.active{background:#0a3d28;border-color:#1D9E75;color:#1D9E75}
+.toggle-group{display:flex;background:#111;border:1px solid #222;border-radius:6px;overflow:hidden}
+.toggle-btn{font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;padding:6px 16px;background:none;border:none;color:#666;cursor:pointer;transition:all .15s}
+.toggle-btn.active{background:#0a3d28;color:#1D9E75}
+select{background:#161616;border:1px solid #2a2a2a;color:#e8e6e0;padding:8px 12px;border-radius:6px;font-family:'Barlow',sans-serif;font-size:13px;cursor:pointer}
+select:focus{outline:none;border-color:#1D9E75}
+input[type="text"],input[type="password"]{background:#161616;border:1px solid #2a2a2a;color:#e8e6e0;padding:8px 12px;border-radius:6px;font-family:'Barlow',sans-serif;font-size:13px;width:100%}
+input[type="text"]:focus,input[type="password"]:focus{outline:none;border-color:#1D9E75}
+textarea{background:#161616;border:1px solid #2a2a2a;color:#e8e6e0;padding:10px 12px;border-radius:6px;font-family:'DM Mono',monospace;font-size:11px;width:100%;resize:vertical}
+textarea:focus{outline:none;border-color:#1D9E75}
+.picks-grid{display:flex;flex-wrap:wrap;gap:5px;margin-top:6px}
+.pick-pill{font-family:'DM Mono',monospace;font-size:10px;padding:3px 8px;border-radius:3px;background:#1a1a1a;border:1px solid #2a2a2a;color:#666}
+.pick-pill.r1{background:#0a3d28;border-color:#1D9E75;color:#1D9E75}
+.pick-pill.r2{background:#0a1e3a;border-color:#185FA5;color:#4a9ede}
+.pick-pill.r3{background:#1a1a2e;border-color:#333;color:#888}
+.need-pill{font-family:'DM Mono',monospace;font-size:10px;padding:3px 8px;border-radius:3px;background:#3a1510;color:#d06040;display:inline-block}
+.surplus-pill{font-family:'DM Mono',monospace;font-size:10px;padding:3px 8px;border-radius:3px;background:#0a3d28;color:#1D9E75;display:inline-block}
+.trade-need{display:flex;gap:5px;flex-wrap:wrap}
+.pos-badge{font-family:'DM Mono',monospace;font-size:10px;padding:2px 6px;border-radius:3px;font-weight:500;display:inline-block;min-width:26px;text-align:center}
+.pos-QB{background:#1e0a3a;color:#9b6aee}
+.pos-RB{background:#3a2a08;color:#d4950a}
+.pos-WR{background:#0a1e3a;color:#4a9ede}
+.pos-TE{background:#0a3d28;color:#1D9E75}
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:16px}
+.stat-card{background:#161616;border:1px solid #222;border-radius:8px;padding:12px}
+.stat-val{font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:700;color:#1D9E75}
+.stat-val.blue{color:#4a9ede}
+.stat-val.amber{color:#d4950a}
+.cap-bar-track{height:6px;background:#222;border-radius:3px;overflow:hidden;margin-top:3px}
+.cap-bar-fill{height:100%;border-radius:3px;background:#1D9E75}
+.rank-item{display:flex;align-items:center;gap:12px;padding:10px 14px;background:#161616;border:1px solid #222;border-radius:6px;margin-bottom:6px;cursor:grab;transition:border-color .15s}
+.rank-item:hover{border-color:#333}
+.rank-item.dragging{opacity:.5;border-color:#1D9E75}
+.rank-item.us{border-color:#1D9E75;background:#0d1f18}
+.rank-num{font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:700;color:#333;min-width:28px}
+.rank-num.top3{color:#1D9E75}
+.rank-name{font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:600;flex:1}
+.rank-rationale{font-size:12px;color:#666;margin-top:4px;line-height:1.5}
+.drag-handle{color:#333;font-size:16px;cursor:grab}
+.modal-overlay{display:none;position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.85);z-index:1000;align-items:center;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{background:#161616;border:1px solid #333;border-radius:12px;padding:24px;width:90%;max-width:680px;max-height:90vh;overflow-y:auto}
+.modal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.modal-title{font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:700}
+.modal-close{background:none;border:none;color:#666;font-size:20px;cursor:pointer;padding:4px}
+.modal-close:hover{color:#ccc}
+.philosophy{font-size:12px;color:#888;line-height:1.55}
+.compare-grid{display:grid;grid-template-columns:1fr 50px 1fr;gap:10px;align-items:start;margin-bottom:8px;padding:10px;background:#161616;border:1px solid #1e1e1e;border-radius:6px}
+.compare-mid{text-align:center;padding-top:10px}
+.compare-pos-label{font-family:'Barlow Condensed',sans-serif;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#444;margin-bottom:5px}
+.grade-pair{display:flex;flex-direction:column;gap:3px;font-size:12px}
+.players-list{font-family:'DM Mono',monospace;font-size:11px;color:#666;margin-top:3px}
+.grade-row{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.grade-cell{display:flex;flex-direction:column;align-items:center;gap:3px;min-width:52px}
+.grade-cell-label{font-size:9px;color:#555;font-family:'DM Mono',monospace;text-transform:uppercase;letter-spacing:.06em}
+.spinner{display:inline-block;width:14px;height:14px;border:2px solid #333;border-top-color:#1D9E75;border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle;margin-right:6px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Trade Calculator */
+.trade-calc-panel{background:#0d0d0d;border:1px solid #2a2a2a;border-radius:8px;margin-top:10px;overflow:hidden}
+.trade-calc-header{background:#111;padding:10px 14px;border-bottom:1px solid #222;display:flex;align-items:center;justify-content:space-between}
+.trade-calc-body{display:grid;grid-template-columns:1fr 60px 1fr;gap:0}
+.trade-side{padding:12px}
+.trade-side-label{font-family:'Barlow Condensed',sans-serif;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#555;margin-bottom:8px}
+.trade-drop-zone{min-height:80px;border:1px dashed #2a2a2a;border-radius:6px;padding:8px;margin-bottom:8px;transition:border-color .15s}
+.trade-drop-zone.drag-over{border-color:#1D9E75;background:#0a2018}
+.trade-player-chip{display:flex;align-items:center;gap:6px;padding:5px 8px;background:#1a1a1a;border:1px solid #2a2a2a;border-radius:4px;margin-bottom:4px;cursor:grab;transition:border-color .15s;user-select:none}
+.trade-player-chip:hover{border-color:#444}
+.trade-player-chip.dragging{opacity:.4}
+.trade-player-chip .chip-val{font-family:'DM Mono',monospace;font-size:10px;color:#1D9E75;min-width:32px;text-align:right}
+.trade-player-chip .chip-val.no-val{color:#444}
+.trade-mid-col{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:12px 8px;border-left:1px solid #1a1a1a;border-right:1px solid #1a1a1a}
+.trade-value-total{font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:700}
+.trade-verdict{font-family:'DM Mono',monospace;font-size:10px;text-align:center;margin-top:6px;padding:3px 6px;border-radius:3px}
+.trade-verdict.win{background:#0a3d28;color:#1D9E75}
+.trade-verdict.loss{background:#3a1510;color:#d06040}
+.trade-verdict.even{background:#2a2826;color:#888}
+
+/* Roster comparison panel */
+.roster-compare-panel{margin-top:12px;border:1px solid #222;border-radius:8px;overflow:hidden}
+.roster-compare-grid{display:grid;grid-template-columns:1fr 1fr;gap:0}
+.roster-team-col{padding:12px}
+.roster-team-col:first-child{border-right:1px solid #1e1e1e}
+.roster-col-header{font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid #222}
+.roster-player-row{display:flex;align-items:center;gap:6px;padding:4px 6px;border-radius:4px;margin-bottom:2px;cursor:pointer;transition:background .1s}
+.roster-player-row:hover{background:#1e1e1e}
+.roster-player-row.highlight-role{background:#0a2a1a;border-left:2px solid #1D9E75}
+.roster-player-row.highlight-player{background:#1a2a0a;border-left:2px solid #d4950a}
+.roster-player-row .rp-name{font-size:12px;flex:1}
+.roster-player-row .rp-name.starter{font-weight:500;color:#e8e6e0}
+.roster-player-row .rp-nfl{font-family:'DM Mono',monospace;font-size:9px;color:#444}
+.ktc-badge{font-family:'DM Mono',monospace;font-size:9px;padding:1px 4px;border-radius:3px;background:#1a1a2e;color:#4a9ede;margin-left:auto}
+
+/* ── OVERVIEW ROSTER GRID ── */
+.overview-table{width:100%;border-collapse:collapse;font-size:12px}
+.overview-table th{font-family:'Barlow Condensed',sans-serif;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#444;padding:8px 12px;text-align:left;border-bottom:1px solid #222;white-space:nowrap}
+.overview-table td{padding:8px 12px;border-bottom:1px solid #181818;vertical-align:top}
+.team-row{cursor:pointer;transition:background .12s}
+.team-row td{background:#161616}
+.team-row.us td{background:#0d1a14}
+.team-row:hover td{background:#1c1c1c}
+.team-row.us:hover td{background:#0f2018}
+.team-row.expanded td{background:#1a1a1a;border-bottom:none}
+.team-row.us.expanded td{background:#0f2018;border-bottom:none}
+.detail-row td{padding:0;border-bottom:1px solid #222}
+.detail-inner{padding:14px 16px;background:#111}
+.tname{font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:14px}
+.tname.us{color:#1D9E75}
+.sym-row{display:flex;gap:4px;align-items:center;margin-top:4px;flex-wrap:wrap}
+.sym{font-family:'DM Mono',monospace;font-size:9px;padding:2px 5px;border-radius:3px;font-weight:500}
+.sym-overall{background:#0a1e3a;color:#4a9ede}
+.sym-open{background:#0a3d28;color:#1D9E75}
+.sym-opening{background:#0a1e3a;color:#4a9ede}
+.sym-retool{background:#3a2a08;color:#d4950a}
+.sym-rebuild{background:#3a1510;color:#d06040}
+.sym-anti{background:#0a1e3a;color:#4a9ede}
+.sym-robust{background:#0a3d28;color:#1D9E75}
+.sym-fragile{background:#3a1510;color:#d06040}
+.sym-cap{background:#1a1a1a;border:1px solid #2a2a2a;color:#888}
+.sym-warn{background:#3a2a08;color:#d4950a}
+.pos-indicators{display:flex;gap:3px;align-items:center;margin-bottom:5px;flex-wrap:nowrap}
+.ind-grade{font-family:'DM Mono',monospace;font-size:10px;font-weight:700;padding:2px 5px;border-radius:3px}
+.ind-gS{background:#0a3d28;color:#1D9E75}
+.ind-gA{background:#0a1e3a;color:#4a9ede}
+.ind-gB{background:#2a2826;color:#888}
+.ind-gC{background:#3a1510;color:#d06040}
+.ind-arrow{color:#2a2a2a;font-size:9px;padding:0 1px}
+.ind-sep{color:#2a2a2a;font-size:10px;padding:0 2px}
+.ind-prob{font-family:'DM Mono',monospace;font-size:10px;font-weight:700;padding:2px 4px;border-radius:3px;border:1px solid}
+.ind-Hi{background:#0a2a1a;border-color:#1D9E75;color:#1D9E75}
+.ind-Mid{background:#2a1e08;border-color:#d4950a;color:#d4950a}
+.ind-Lo{background:#222;border-color:#444;color:#666}
+.ind-depth{font-family:'DM Mono',monospace;font-size:10px;font-weight:700;padding:2px 4px;border-radius:3px;border:1px solid}
+.ind-AF{background:#0a1e3a;border-color:#185FA5;color:#4a9ede}
+.ind-R{background:#0a3d28;border-color:#1D9E75;color:#1D9E75}
+.ind-F{background:#3a1510;border-color:#d06040;color:#d06040}
+.player-list{display:flex;flex-direction:column;gap:2px}
+.player-item{display:flex;align-items:center;gap:5px}
+.pname{font-size:11px;color:#888}
+.pname.starter{color:#e8e6e0;font-weight:500}
+.pnfl{font-family:'DM Mono',monospace;font-size:9px;color:#444}
+.chev{color:#333;font-size:10px;transition:transform .2s;display:inline-block;flex-shrink:0}
+.chev.open{transform:rotate(180deg)}
+.detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
+.det-section{background:#161616;border:1px solid #222;border-radius:6px;padding:10px 12px}
+.det-label{font-family:'Barlow Condensed',sans-serif;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#444;margin-bottom:6px}
+.pos-grade-row{display:flex;align-items:center;gap:5px;margin-bottom:5px;padding-bottom:5px;border-bottom:1px solid #1a1a1a;flex-wrap:wrap}
+.pos-grade-row:last-child{border-bottom:none;margin-bottom:0;padding-bottom:0}
+.pos-grade-row.dimmed{opacity:.6}
+.pgl{font-family:'DM Mono',monospace;font-size:10px;color:#555;min-width:68px}
+.gm{font-family:'DM Mono',monospace;font-size:10px;color:#666}
+.flex-note{font-family:'DM Mono',monospace;font-size:9px;color:#555;margin-left:4px;font-style:italic}
+.det-divider{height:1px;background:#1e1e1e;margin:8px 0}
+@media(max-width:900px){
+  .detail-grid{grid-template-columns:1fr}
+  .content{padding:12px}
+  .tab{padding:8px 10px;font-size:12px}
+}
+</style>
+</head>
+<body>
+<div class="app-header">
+  <div class="header-top">
+    <div class="logo">Rhinos Dynasty Command Center</div>
+    <div class="header-actions">
+      <button class="btn btn-secondary btn-sm" onclick="openModal('modalImport')">Import</button>
+      <button class="btn btn-copy btn-sm" onclick="copyReassessPrompt()">Copy Re-Assess Prompt</button>
+      <button class="btn btn-import btn-sm" onclick="openModal('modalImportResults')">Import Results</button>
+      <span id="ktcStatusBadge" style="font-family:'DM Mono',monospace;font-size:10px;color:#555;display:flex;align-items:center;gap:6px">KTC loading…</span>
+      <span class="badge-us">brandont1223 · #630</span>
+    </div>
+  </div>
+  <div class="tabs">
+    <button class="tab active" onclick="showTab('overview',this)">League Overview</button>
+    <button class="tab" onclick="showTab('compare',this)">Team Compare</button>
+    <button class="tab" onclick="showTab('trade',this)">Trade Targets</button>
+    <button class="tab" onclick="showTab('power',this)">Power Rankings</button>
+    <button class="tab" onclick="showTab('age',this)">Age & Draft</button>
+    <button class="tab" onclick="showTab('roster',this)">Rosters</button>
+  </div>
+</div>
+
+<div class="content" id="mainContent"></div>
+
+<!-- MODALS -->
+<div class="modal-overlay" id="modalImport">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">Import FFPC Data</div><button class="modal-close" onclick="closeModal('modalImport')">&#x2715;</button></div>
+    <p style="font-size:13px;color:#888;margin-bottom:14px;line-height:1.6">Upload the CSV export from FFPC (the full player list with ownership). Free agents are ignored automatically.</p>
+    <div style="margin-bottom:16px">
+      <div class="section-label" style="margin-bottom:8px">Import Mode</div>
+      <div style="display:flex;gap:8px">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px 14px;background:#161616;border:1px solid #2a2a2a;border-radius:6px;flex:1" id="modeRosterLabel">
+          <input type="radio" name="importMode" value="roster" checked onchange="updateImportModeUI()" style="accent-color:#1D9E75">
+          <div>
+            <div style="font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:13px;color:#ccc">Rosters Only</div>
+            <div style="font-size:11px;color:#555;margin-top:2px">Update player rosters — fast parse, skips stat columns</div>
+          </div>
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px 14px;background:#161616;border:1px solid #2a2a2a;border-radius:6px;flex:1" id="modeFullLabel">
+          <input type="radio" name="importMode" value="full" onchange="updateImportModeUI()" style="accent-color:#1D9E75">
+          <div>
+            <div style="font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:13px;color:#ccc">Full Import</div>
+            <div style="font-size:11px;color:#555;margin-top:2px">Rosters + stats and current week update</div>
+          </div>
+        </label>
+      </div>
+    </div>
+    <div id="weekInputRow" style="display:none;margin-bottom:12px">
+      <label class="section-label" style="margin-bottom:6px;display:block">Current Week</label>
+      <input type="text" id="currentWeekInput" placeholder="e.g. 8" style="width:80px">
+    </div>
+    <div style="margin-bottom:12px">
+      <div class="section-label" style="margin-bottom:8px">CSV File</div>
+      <label style="display:flex;align-items:center;gap:10px;padding:12px 16px;background:#111;border:1px dashed #333;border-radius:6px;cursor:pointer" id="csvDropLabel">
+        <span style="font-size:18px">&#x1F4C4;</span>
+        <div>
+          <div style="font-size:13px;color:#ccc" id="csvFileLabel">Choose CSV file or click to browse</div>
+          <div style="font-size:11px;color:#555;margin-top:2px">FFPC player export (.csv)</div>
+        </div>
+        <input type="file" id="csvFileInput" accept=".csv" style="display:none" onchange="handleCsvFileSelect(this)">
+      </label>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:4px">
+      <button class="btn btn-primary" onclick="processCsvImport()">Import</button>
+      <button class="btn btn-secondary" onclick="closeModal('modalImport')">Cancel</button>
+    </div>
+    <div id="importStatus" style="margin-top:10px;font-size:12px;color:#1D9E75"></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modalKtcImport">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">Manual KTC Import</div><button class="modal-close" onclick="closeModal('modalKtcImport')">✕</button></div>
+    <p style="font-size:13px;color:#888;margin-bottom:10px;line-height:1.6">Paste KTC player values as JSON. Go to <strong style="color:#ccc">keeptradecut.com</strong>, open browser dev tools → Network tab, filter for "api/players", copy the response JSON, and paste it below.</p>
+    <p style="font-size:11px;color:#555;margin-bottom:14px">Accepts: <code style="color:#4a9ede">[ {"playerName": "CeeDee Lamb", "value": 9200}, ... ]</code> or <code style="color:#4a9ede">{"ceedee lamb": 9200, ...}</code></p>
+    <textarea id="ktcImportText" rows="10" placeholder="Paste KTC JSON here..."></textarea>
+    <div style="display:flex;gap:8px;margin-top:12px">
+      <button class="btn btn-primary" onclick="processKtcManualImport()">Import Values</button>
+      <button class="btn btn-secondary" onclick="closeModal('modalKtcImport')">Cancel</button>
+    </div>
+    <div id="ktcImportStatus" style="margin-top:8px;font-size:12px"></div>
+  </div>
+</div>
+    <p style="font-size:13px;color:#888;margin-bottom:14px;line-height:1.6">Paste the JSON response from Claude after running the Re-Assess prompt. All grades, windows, and philosophy summaries will update automatically.</p>
+    <textarea id="resultsImportText" rows="12" placeholder="Paste Claude JSON response here..."></textarea>
+    <div style="display:flex;gap:8px;margin-top:12px">
+      <button class="btn btn-primary" onclick="processImportResults()">Apply Results</button>
+      <button class="btn btn-secondary" onclick="closeModal('modalImportResults')">Cancel</button>
+    </div>
+    <div id="resultsImportStatus" style="margin-top:8px;font-size:12px;color:#1D9E75"></div>
+  </div>
+</div>
+
+<script>
+// ── DATA ──────────────────────────────────────────────────────────────────────
+const TEAMS = [
+  {
+    id:'rhinos',name:'Rhinos #630',owner:'brandont1223',us:true,rostered:20,
+    qb:{floor:'B',ceil:'S',prob:'High',frag:'robust',starters:['Drake Maye (NE)'],depth:['Malik Willis (MIA)','Michael Penix (ATL)']},
+    rb:{floor:'C',ceil:'A',prob:'High',frag:'antifragile',starters:['Jacory Croskey-Merritt (WAS)','Zach Charbonnet (SEA)'],depth:['Tyler Allgeier (ARI)','Braelon Allen (NYJ)','Emmett Johnson (KC)','Jordan James (SF)','Kaelon Black (SF)','Chris Brooks (GB)']},
+    wr:{floor:'S',ceil:'S',prob:'High',frag:'robust',starters:['CeeDee Lamb (DAL)','Nico Collins (HOU)','Rashee Rice (KC)'],depth:['DeVonta Smith (PHI)','Ladd McConkey (LAC)','Chris Bell (MIA)','Jaylin Noel (HOU)']},
+    te:{floor:'A',ceil:'S',prob:'Medium',frag:'robust',starters:['Harold Fannin (CLE)'],depth:['Isaiah Likely (NYG)']},
+    flex:{floor:'A',ceil:'S',prob:'High',frag:'antifragile',note:'WR/TE overflow driven'},
+    flexDepth:{floor:'A',ceil:'S',prob:'High',frag:'antifragile',note:'RB depth inherits league injuries'},
+    overall:{floor:'A',ceil:'S',delta:'moderate',frag:'antifragile'},
+    window:'open',windowNote:'Maye Year 2 + elite WR corps. Window opens fully when 1-2 RBs emerge.',primeConcern:false,
+    philosophy:'The most deliberately constructed roster in the league. Dominant at every pass-catching position with a franchise QB in Maye, yet intentionally thin at RB week 1. The antifragile backfield is the core bet — as injuries accumulate this roster gets stronger. If two or three depth backs inherit roles mid-season, this becomes the best team in the league.',
+    needs:['RB proven'],surplus:['WR depth','TE depth','Draft picks'],
+    age:{QB:23,RB:23,WR:26,TE:24},
+    picks2027:['R1','R2','R3','R4','R5','R6','R7']
+  },
+  {
+    id:'bookends',name:'Buffalo Bookends 30',us:false,rostered:19,
+    qb:{floor:'B',ceil:'B',prob:'Low',frag:'fragile',starters:['Dak Prescott (DAL)'],depth:['Tua Tagovailoa (ATL)','Fernando Mendoza (LV)']},
+    rb:{floor:'B',ceil:'A',prob:'Medium',frag:'robust',starters:['TreVeyon Henderson (NE)','Chuba Hubbard (CAR)'],depth:['Rico Dowdle (PIT)','Kyle Monangai (CHI)','Isiah Pacheco (DET)']},
+    wr:{floor:'A',ceil:'A',prob:'High',frag:'robust',starters:['Amon-Ra St. Brown (DET)','Emeka Egbuka (TB)','Khalil Shakir (BUF)'],depth:['Jayden Higgins (HOU)','Michael Wilson (ARI)','Isaac TeSlaa (DET)','Elijah Sarratt (BAL)']},
+    te:{floor:'S',ceil:'S',prob:'High',frag:'antifragile',starters:['Trey McBride (ARI)'],depth:['Dalton Kincaid (BUF)','Kenyon Sadiq (NYJ)','David Njoku (LAC)']},
+    flex:{floor:'A',ceil:'A',prob:'High',frag:'robust',note:'TE room overflows into flex'},
+    flexDepth:{floor:'A',ceil:'S',prob:'High',frag:'robust',note:'Deep WR + TE stack'},
+    overall:{floor:'A',ceil:'A',delta:'minimal',frag:'robust'},
+    window:'open',windowNote:'Flex/TE luxurious but QB cap limits ceiling.',primeConcern:false,
+    philosophy:'An elite TE room unmatched in the league combined with a strong WR corps makes the flex situation genuinely luxurious. The QB room is the clear liability — Prescott and Tua are not difference-makers in superflex. Upgrading at QB would make this a top-2 roster.',
+    needs:['QB upgrade'],surplus:['TE depth','WR depth'],
+    age:{QB:32,RB:25,WR:26,TE:27},
+    picks2027:['R1','R2','R3','R4','R4','R5','R6']
+  },
+  {
+    id:'wheel',name:'Dbls Rt. 92 A Wheel',us:false,rostered:19,
+    qb:{floor:'S',ceil:'S',prob:'High',frag:'robust',starters:['Patrick Mahomes (KC)'],depth:['Jordan Love (GB)','C.J. Stroud (HOU)']},
+    rb:{floor:'A',ceil:'A',prob:'High',frag:'robust',starters:['Bucky Irving (TB)','David Montgomery (HOU)'],depth:['Tony Pollard (TEN)','Tyrone Tracy (NYG)','Woody Marks (HOU)','Tyjae Spears (TEN)','Mike Washington (LV)']},
+    wr:{floor:'A',ceil:'S',prob:'High',frag:'robust',starters:['Jaxon Smith-Njigba (SEA)','Rome Odunze (CHI)','Brian Thomas (JAC)'],depth:['Jordan Addison (MIN)','Xavier Worthy (KC)','Jordyn Tyson (NO)']},
+    te:{floor:'B',ceil:'B',prob:'Low',frag:'robust',starters:['T.J. Hockenson (MIN)'],depth:['Brenton Strange (JAC)','Greg Dulcich (MIA)']},
+    flex:{floor:'A',ceil:'S',prob:'High',frag:'robust',note:'Young WR room drives upside'},
+    flexDepth:{floor:'A',ceil:'A',prob:'High',frag:'robust',note:'Deep RB + WR overflow'},
+    overall:{floor:'A',ceil:'S',delta:'moderate',frag:'robust'},
+    window:'open',windowNote:'Most complete roster. Window is now and multi-year.',primeConcern:false,
+    philosophy:'The most complete roster in the league on paper. Mahomes at QB, Love at SF, a deep RB room, an ascending WR group. No single elite position but no real weaknesses either. Best team to bet on for consistent weekly production from week 1 through playoffs.',
+    needs:['TE1 upgrade'],surplus:['QB depth','RB depth','WR depth'],
+    age:{QB:30,RB:27,WR:24,TE:29},
+    picks2027:['R1','R2','R3','R4','R5','R6','R7']
+  },
+  {
+    id:'saltpond',name:'Salt Pond Sun & Sand',us:false,rostered:18,
+    qb:{floor:'B',ceil:'B',prob:'Low',frag:'fragile',starters:['Jared Goff (DET)'],depth:['Kyler Murray (MIN)','Sam Darnold (SEA)']},
+    rb:{floor:'S',ceil:'S',prob:'High',frag:'fragile',starters:['Christian McCaffrey (SF)','Ashton Jeanty (LV)'],depth:["D'Andre Swift (CHI)",'Jadarian Price (SEA)','Alvin Kamara (NO)','Kaleb Johnson (PIT)']},
+    wr:{floor:'A',ceil:'A',prob:'High',frag:'robust',starters:['Drake London (ATL)','George Pickens (DAL)','Zay Flowers (BAL)'],depth:['DK Metcalf (PIT)','Chris Godwin (TB)','KC Concepcion (CLE)','Tre Tucker (LV)']},
+    te:{floor:'A',ceil:'A',prob:'High',frag:'fragile',starters:['George Kittle (SF)'],depth:['Juwan Johnson (NO)']},
+    flex:{floor:'A',ceil:'S',prob:'High',frag:'fragile',note:'RB elite overflow into flex'},
+    flexDepth:{floor:'B',ceil:'B',prob:'Low',frag:'fragile',note:'Thin beyond starters'},
+    overall:{floor:'A',ceil:'A',delta:'minimal',frag:'fragile'},
+    window:'retool',windowNote:'CMC age 29, Kittle 32. Stars near/past prime.',primeConcern:true,
+    philosophy:'CMC and Jeanty is an extraordinary RB starting duo. But the ceiling is capped by a QB room that\'s never a difference-maker. At only 18 rostered the depth is thin. Needs its stars healthy all season. CMC and Kittle aging means the window is narrowing quickly.',
+    needs:['QB upgrade','depth','youth'],surplus:['RB starters'],
+    age:{QB:31,RB:29,WR:26,TE:32},
+    picks2027:['R1','R2','R2','R3','R4','R5','R7']
+  },
+  {
+    id:'steelhawks',name:'Steelhawks',us:false,rostered:16,
+    qb:{floor:'S',ceil:'S',prob:'High',frag:'robust',starters:['Lamar Jackson (BAL)'],depth:['Jayden Daniels (WAS)','Deshaun Watson (CLE)']},
+    rb:{floor:'A',ceil:'A',prob:'High',frag:'robust',starters:['Jeremiyah Love (ARI)','Rhamondre Stevenson (NE)'],depth:['J.K. Dobbins (DEN)','Jonah Coleman (DEN)']},
+    wr:{floor:'B',ceil:'A',prob:'Medium',frag:'fragile',starters:['Brandon Aiyuk (SF)','Travis Hunter (JAC)','Josh Downs (IND)'],depth:['Jalen McMillan (TB)','Alec Pierce (IND)','Tory Horton (SEA)']},
+    te:{floor:'A',ceil:'A',prob:'High',frag:'robust',starters:['Colston Loveland (CHI)'],depth:['AJ Barner (SEA)','Jake Tonges (SF)']},
+    flex:{floor:'A',ceil:'A',prob:'High',frag:'robust',note:'QB/RB strength elevates flex floor'},
+    flexDepth:{floor:'B',ceil:'B',prob:'Low',frag:'fragile',note:'Thin at 16 rostered'},
+    overall:{floor:'A',ceil:'A',delta:'minimal',frag:'robust'},
+    window:'open',windowNote:'Jackson/Daniels duo is terrifying. Thin at 16 rostered but consistent.',primeConcern:false,
+    philosophy:'Jackson and Daniels at QB/SF is arguably the most terrifying position group in the league. Well-rounded at only 16 rostered. Doesn\'t have the ceiling of elite rosters but has fewer ways to lose a week — a consistent contender all season.',
+    needs:['WR depth','roster depth'],surplus:['QB value'],
+    age:{QB:28,RB:24,WR:25,TE:24},
+    picks2027:['R1','R2','R3','R4','R5','R6','R7']
+  },
+  {
+    id:'third',name:'The Third',us:false,rostered:19,
+    qb:{floor:'S',ceil:'S',prob:'High',frag:'fragile',starters:['Josh Allen (BUF)'],depth:['Jalen Hurts (PHI)','Jaxson Dart (NYG)']},
+    rb:{floor:'B',ceil:'A',prob:'Medium',frag:'robust',starters:['Josh Jacobs (GB)','Kyren Williams (LAR)'],depth:['Rachaad White (WAS)','Demond Claiborne (MIN)']},
+    wr:{floor:'B',ceil:'B',prob:'Low',frag:'fragile',starters:['Luther Burden (CHI)','Courtland Sutton (DEN)','Jayden Reed (GB)'],depth:['Ricky Pearsall (SF)','Rashid Shaheed (SEA)','Omar Cooper (NYJ)','Jauan Jennings (MIN)','Denzel Boston (CLE)','Malachi Fields (NYG)',"Ja'Kobi Lane (BAL)"]},
+    te:{floor:'B',ceil:'B',prob:'Low',frag:'fragile',starters:['Tucker Kraft (GB)'],depth:['Hunter Henry (NE)']},
+    flex:{floor:'A',ceil:'A',prob:'High',frag:'robust',note:'Allen/Hurts floor props up flex'},
+    flexDepth:{floor:'B',ceil:'B',prob:'Low',frag:'fragile',note:'WR room is thin beyond starters'},
+    overall:{floor:'A',ceil:'A',delta:'minimal',frag:'fragile'},
+    window:'open',windowNote:'Allen/Hurts floor is elite but roster construction is unbalanced.',primeConcern:false,
+    philosophy:'The best QB/SF combo in the league with Allen and Hurts is a weekly floor-raiser. The problem is everything else is pedestrian — thin WR room, average RBs, mediocre TE depth. This team wins or loses based almost entirely on Allen and Hurts outscoring counterparts. A QB injury is catastrophic.',
+    needs:['WR1','TE1 upgrade'],surplus:['QB surplus value'],
+    age:{QB:30,RB:28,WR:25,TE:32},
+    picks2027:['R1','R2','R3','R4','R5','R6','R7']
+  },
+  {
+    id:'delocho',name:'DEL OCHO',us:false,rostered:18,
+    qb:{floor:'B',ceil:'B',prob:'Medium',frag:'fragile',starters:['Brock Purdy (SF)'],depth:['Cam Ward (TEN)']},
+    rb:{floor:'B',ceil:'A',prob:'High',frag:'antifragile',starters:['Bijan Robinson (ATL)','Omarion Hampton (LAC)'],depth:['Breece Hall (NYJ)','Nicholas Singleton (TEN)','Adam Randall (BAL)','Jonathon Brooks (CAR)']},
+    wr:{floor:'B',ceil:'B',prob:'Low',frag:'fragile',starters:['Jameson Williams (DET)','Mike Evans (SF)','Michael Pittman (PIT)'],depth:['Makai Lemon (PHI)',"Wan'Dale Robinson (TEN)",'Skyler Bell (BUF)']},
+    te:{floor:'B',ceil:'B',prob:'Low',frag:'fragile',starters:['Chig Okonkwo (WAS)'],depth:['Terrance Ferguson (LAR)','Eli Raridon (NE)','Justin Joly (DEN)']},
+    flex:{floor:'B',ceil:'A',prob:'High',frag:'antifragile',note:'Antifragile RB room drives flex upside'},
+    flexDepth:{floor:'B',ceil:'A',prob:'High',frag:'antifragile',note:'RB depth inherits injured starters elsewhere'},
+    overall:{floor:'B',ceil:'A',delta:'moderate',frag:'antifragile'},
+    window:'opening',windowNote:'Young antifragile RB room. Window opens in 1-2 years.',primeConcern:false,
+    philosophy:'Purdy anchors a serviceable but unspectacular roster. The most interesting aspect is the antifragile RB room — Hampton, Hall, Singleton, and Randall are all positioned to inherit roles. No position group is elite but none catastrophic. More upside than the floor suggests.',
+    needs:['QB1 upgrade','WR1','TE1'],surplus:['RB depth'],
+    age:{QB:27,RB:24,WR:27,TE:26},
+    picks2027:['R1','R2','R3','R4','R5','R6','R6']
+  },
+  {
+    id:'meatshack',name:'Meat Shack',us:false,rostered:16,
+    qb:{floor:'B',ceil:'A',prob:'Medium',frag:'fragile',starters:['Caleb Williams (CHI)'],depth:['Aaron Rodgers (PIT)','Ty Simpson (LAR)']},
+    rb:{floor:'B',ceil:'B',prob:'Low',frag:'fragile',starters:['Cam Skattebo (NYG)','RJ Harvey (DEN)'],depth:['Blake Corum (LAR)','Devin Neal (NO)']},
+    wr:{floor:'A',ceil:'S',prob:'High',frag:'robust',starters:['Garrett Wilson (NYJ)','Marvin Harrison (ARI)','Parker Washington (JAC)'],depth:['Jalen Coker (CAR)','Antonio Williams (WAS)','Ted Hurst (TB)']},
+    te:{floor:'S',ceil:'S',prob:'High',frag:'robust',starters:['Brock Bowers (LV)'],depth:['Oscar Delp (NO)','Max Klare (LAR)']},
+    flex:{floor:'A',ceil:'S',prob:'High',frag:'robust',note:'Bowers + WR overflow is elite'},
+    flexDepth:{floor:'A',ceil:'A',prob:'High',frag:'robust',note:'WR room deep enough to absorb injury'},
+    overall:{floor:'B',ceil:'A',delta:'moderate',frag:'fragile'},
+    window:'opening',windowNote:'Caleb Williams Year 2 is the key unlock.',primeConcern:false,
+    philosophy:'Brock Bowers is elite and a massive TE premium asset. G. Wilson and Marvin Harrison give real WR upside. But Rodgers at SF is a catastrophic liability. Caleb Williams needs a Year 2 leap just to make this functional at QB. The talent is here but the SF hole drags everything down weekly.',
+    needs:['QB/SF upgrade'],surplus:['TE elite','WR depth'],
+    age:{QB:23,RB:24,WR:24,TE:23},
+    picks2027:['R1','R1','R2','R2','R3','R4','R5','R6','R7']
+  },
+  {
+    id:'greeneggs',name:'GreenEggs CNcN',us:false,rostered:19,
+    qb:{floor:'C',ceil:'B',prob:'Low',frag:'fragile',starters:['Bryce Young (CAR)'],depth:['Jacoby Brissett (ARI)','Carson Beck (ARI)']},
+    rb:{floor:'B',ceil:'A',prob:'High',frag:'robust',starters:['Chase Brown (CIN)','Kenneth Walker (KC)'],depth:['Jordan Mason (MIN)','Chris Rodriguez (JAC)','Keaton Mitchell (LAC)','Kimani Vidal (LAC)']},
+    wr:{floor:'S',ceil:'S',prob:'High',frag:'robust',starters:["Ja'Marr Chase (CIN)",'Puka Nacua (LAR)','Malik Nabers (NYG)'],depth:['Davante Adams (LAR)','Matthew Golden (GB)','Stefon Diggs (FA)','Jack Bech (LV)']},
+    te:{floor:'A',ceil:'A',prob:'High',frag:'robust',starters:['Kyle Pitts (ATL)'],depth:['Oronde Gadsden (LAC)','Cade Otton (TB)']},
+    flex:{floor:'S',ceil:'S',prob:'High',frag:'robust',note:'S-tier WR overflow dominates flex'},
+    flexDepth:{floor:'A',ceil:'S',prob:'High',frag:'robust',note:'WR depth + Pitts overflow'},
+    overall:{floor:'B',ceil:'A',delta:'moderate',frag:'fragile'},
+    window:'retool',windowNote:'Elite skill players wasted on C-tier QB. Must address QB to open window.',primeConcern:false,
+    philosophy:"Ja'Marr Chase, Nacua, and Nabers is an S-tier WR trio paired with a C-tier QB room. Elite skill players wasted on bad QB play every week. If Young or Beck breaks out, this becomes dangerous. Until then, needs WRs to overcome a 10-15 point QB deficit weekly.",
+    needs:['QB desperately'],surplus:['WR elite','TE','RB depth'],
+    age:{QB:24,RB:25,WR:25,TE:24},
+    picks2027:['R3','R4','R4','R5','R6','R7','R7']
+  },
+  {
+    id:'duhhh',name:'Duhhhh',us:false,rostered:21,
+    qb:{floor:'B',ceil:'B',prob:'Low',frag:'fragile',starters:['Matthew Stafford (LAR)'],depth:['Baker Mayfield (TB)','Daniel Jones (IND)']},
+    rb:{floor:'S',ceil:'S',prob:'High',frag:'robust',starters:['James Cook (BUF)',"De'Von Achane (MIA)"],depth:['Saquon Barkley (PHI)','Derrick Henry (BAL)','Quinshon Judkins (CLE)','Tank Bigsby (PHI)','Ray Davis (BUF)','Jaylen Wright (MIA)','Ollie Gordon (MIA)']},
+    wr:{floor:'A',ceil:'A',prob:'High',frag:'robust',starters:['Chris Olave (NO)','Tetairoa McMillan (CAR)','Tee Higgins (CIN)'],depth:['Jaylen Waddle (DEN)','Christian Watson (GB)','Zachariah Branch (ATL)']},
+    te:{floor:'A',ceil:'S',prob:'High',frag:'robust',starters:['Sam LaPorta (DET)'],depth:['Travis Kelce (KC)','Mark Andrews (BAL)']},
+    flex:{floor:'S',ceil:'S',prob:'High',frag:'robust',note:'RB room so deep flex is never an issue'},
+    flexDepth:{floor:'S',ceil:'S',prob:'High',frag:'robust',note:'Historically deep — wasted by QB hole'},
+    overall:{floor:'A',ceil:'A',delta:'minimal',frag:'fragile'},
+    window:'retool',windowNote:'Henry/Kelce/Andrews aging. RB extreme overkill. Needs QB urgently.',primeConcern:true,
+    philosophy:'The most lopsided roster in the league. Cook, Barkley, Henry, Achane in the same RB room is historically deep — but Stafford and Mayfield at QB/SF is a weekly handicap in superflex. The RB depth is so extreme it\'s essentially wasted. Very fun roster, very exploitable weakness.',
+    needs:['QB urgently','SF upgrade'],surplus:['RB extreme','TE depth'],
+    age:{QB:38,RB:29,WR:26,TE:33},
+    picks2027:['R5','R6','R7','R7']
+  },
+  {
+    id:'warranted',name:'When Warrented',us:false,rostered:19,
+    qb:{floor:'A',ceil:'A',prob:'High',frag:'fragile',starters:['Justin Herbert (LAC)'],depth:['Bo Nix (DEN)','Geno Smith (NYJ)']},
+    rb:{floor:'A',ceil:'S',prob:'High',frag:'fragile',starters:['Jahmyr Gibbs (DET)','Javonte Williams (DAL)'],depth:['Jaylen Warren (PIT)','Aaron Jones (MIN)','Kaytron Allen (WAS)','MarShawn Lloyd (GB)','Eli Heidenreich (PIT)']},
+    wr:{floor:'B',ceil:'B',prob:'Low',frag:'fragile',starters:['Justin Jefferson (MIN)','Terry McLaurin (WAS)','Jakobi Meyers (JAC)'],depth:['Romeo Doubs (NE)','Jerry Jeudy (CLE)','Germie Bernard (PIT)']},
+    te:{floor:'A',ceil:'A',prob:'High',frag:'robust',starters:['Tyler Warren (IND)'],depth:['Dallas Goedert (PHI)','Gunnar Helm (TEN)']},
+    flex:{floor:'A',ceil:'S',prob:'High',frag:'fragile',note:'Gibbs at flex is elite when healthy'},
+    flexDepth:{floor:'B',ceil:'A',prob:'Medium',frag:'fragile',note:'WR room too thin to compensate RB injury'},
+    overall:{floor:'A',ceil:'A',delta:'minimal',frag:'fragile'},
+    window:'open',windowNote:'Gibbs/Herbert prime window is now. WR depth is the weak link.',primeConcern:false,
+    philosophy:'Built around an elite RB room headlined by Gibbs. Works brilliantly when healthy — Gibbs at flex is elite — but an injury to him or Williams creates a cascading problem since the WR room isn\'t deep enough. Tyler Warren at TE is a hidden weapon. Needs RBs healthy all season.',
+    needs:['WR depth','WR upside'],surplus:['RB value','TE depth'],
+    age:{QB:28,RB:25,WR:28,TE:27},
+    picks2027:['R1','R3','R4','R5','R6','R7']
+  },
+  {
+    id:'depot',name:'Dynasty Depot',us:false,rostered:19,
+    qb:{floor:'A',ceil:'A',prob:'High',frag:'robust',starters:['Joe Burrow (CIN)'],depth:['Trevor Lawrence (JAC)','Tyler Shough (NO)']},
+    rb:{floor:'A',ceil:'A',prob:'High',frag:'fragile',starters:['Jonathan Taylor (IND)','Travis Etienne (NO)'],depth:['Bhayshul Tuten (JAC)','Kenneth Gainwell (TB)','Dylan Sampson (CLE)','Brian Robinson (ATL)']},
+    wr:{floor:'A',ceil:'S',prob:'High',frag:'fragile',starters:['A.J. Brown (PHI)','DJ Moore (BUF)','Carnell Tate (TEN)'],depth:['Quentin Johnston (LAC)',"De'Zhaun Stribling (SF)","Tre' Harris (LAC)",'Chris Brazzell (CAR)']},
+    te:{floor:'B',ceil:'B',prob:'Low',frag:'fragile',starters:['Jake Ferguson (DAL)'],depth:['Dalton Schultz (HOU)','Eli Stowers (PHI)']},
+    flex:{floor:'A',ceil:'S',prob:'High',frag:'robust',note:'WR overflow + solid RB depth'},
+    flexDepth:{floor:'B',ceil:'B',prob:'Low',frag:'fragile',note:'Fragile if Taylor/Etienne go down'},
+    overall:{floor:'A',ceil:'A',delta:'minimal',frag:'fragile'},
+    window:'open',windowNote:'Burrow/Lawrence + AJ Brown window is now. Fragile if Taylor/Etienne go down.',primeConcern:false,
+    philosophy:'Burrow and Lawrence is an underrated QB/SF pairing giving a real weekly floor. The RB room with Taylor and Etienne is strong but fragile — if either goes down the depth is ordinary. AJ Brown and DJ Moore have S-tier ceiling if healthy. Needs its stars on the field.',
+    needs:['TE1 upgrade','RB depth'],surplus:['QB value','WR depth'],
+    age:{QB:28,RB:28,WR:29,TE:30},
+    picks2027:['R1','R1','R2','R2','R3','R3','R5','R6','R7']
+  }
+];
+
+const GRADE_ORDER={S:4,A:3,B:2,C:1};
+let overviewFilter='all';
+let overviewMode='assessment';
+let showAges=false;
+let compareA='rhinos',compareB='wheel';
+let compareMode='matchup'; // 'matchup' or 'construction'
+let rosterTeam='rhinos',rosterFilter='ALL';
+let powerMode='preseason';
+let powerRankings=TEAMS.map(t=>t.id);
+let statsData=null;
+let currentWeek=0;
+let dragSrc=null;
+let expandedRows=new Set();
+let ktcValues={};
+let ktcLoading=false;
+let ktcLoaded=false;
+let tradeCalcOpen=null; // team id of open trade panel
+let tradeRhinos=[];   // array of {name,value}
+let tradeTarget=[];   // array of {name,value}
+
+// ── KTC VALUE LOADER ──────────────────────────────────────────────────────────
+const KTC_STORAGE_KEY='rhinos_ktc_values';
+const KTC_TS_KEY='rhinos_ktc_timestamp';
+const KTC_MAX_AGE_MS=7*24*60*60*1000; // 7 days
+
+function ktcAgeLabel(){
+  try{
+    const ts=localStorage.getItem(KTC_TS_KEY);
+    if(!ts)return null;
+    const diffMs=Date.now()-parseInt(ts);
+    const diffDays=Math.floor(diffMs/(1000*60*60*24));
+    if(diffDays===0)return'updated today';
+    if(diffDays===1)return'updated 1 day ago';
+    return`updated ${diffDays} days ago`;
+  }catch(e){return null;}
+}
+
+function loadKTCFromCache(){
+  try{
+    const raw=localStorage.getItem(KTC_STORAGE_KEY);
+    if(!raw)return false;
+    const parsed=JSON.parse(raw);
+    if(Object.keys(parsed).length===0)return false;
+    Object.assign(ktcValues,parsed);
+    ktcLoaded=true;
+    return true;
+  }catch(e){return false;}
+}
+
+function saveKTCToCache(values){
+  try{
+    localStorage.setItem(KTC_STORAGE_KEY,JSON.stringify(values));
+    localStorage.setItem(KTC_TS_KEY,String(Date.now()));
+  }catch(e){}
+}
+
+function ktcCacheIsStale(){
+  try{
+    const ts=localStorage.getItem(KTC_TS_KEY);
+    if(!ts)return true;
+    return(Date.now()-parseInt(ts))>KTC_MAX_AGE_MS;
+  }catch(e){return true;}
+}
+
+async function loadKTC(forceRefresh){
+  if(ktcLoading)return;
+  // Try cache first (unless force refresh)
+  if(!forceRefresh&&loadKTCFromCache()&&!ktcCacheIsStale()){
+    updateKTCStatusBadge();
+    return;
+  }
+  // Load from cache as fallback even if stale, so we always have something
+  if(!ktcLoaded)loadKTCFromCache();
+  ktcLoading=true;
+  updateKTCStatusBadge();
+  try{
+    // Use corsproxy.io to bypass CORS on local file
+    const proxyUrl='https://corsproxy.io/?url='+encodeURIComponent('https://keeptradecut.com/api/players?format=2&posGroup=0');
+    const res=await fetch(proxyUrl);
+    if(!res.ok)throw new Error('fetch failed');
+    const data=await res.json();
+    // KTC API returns array of player objects with playerName and value fields
+    const newValues={};
+    if(Array.isArray(data)){
+      data.forEach(p=>{
+        const name=(p.playerName||p.name||'').toLowerCase().trim();
+        const val=p.value??p.overallValue??null;
+        if(name&&val!=null)newValues[name]=val;
+      });
+    }
+    if(Object.keys(newValues).length>0){
+      Object.assign(ktcValues,newValues);
+      saveKTCToCache(newValues);
+      ktcLoaded=true;
+    }
+  }catch(e){
+    // CORS proxy failed — use cached values if available, show manual import option
+    console.warn('KTC fetch failed:',e.message);
+  }
+  ktcLoading=false;
+  updateKTCStatusBadge();
+}
+
+function updateKTCStatusBadge(){
+  const el=document.getElementById('ktcStatusBadge');
+  if(!el)return;
+  const age=ktcAgeLabel();
+  if(ktcLoading){
+    el.innerHTML='<span style="color:#d4950a">⟳ Fetching KTC…</span>';
+  } else if(ktcLoaded&&age){
+    el.innerHTML=`<span style="color:#1D9E75">KTC ✓ ${age}</span> <button class="btn btn-sm btn-secondary" style="font-size:9px;padding:2px 6px" onclick="loadKTC(true)">Refresh</button> <button class="btn btn-sm btn-secondary" style="font-size:9px;padding:2px 6px" onclick="openModal('modalKtcImport')">Manual Import</button>`;
+  } else {
+    el.innerHTML=`<span style="color:#555">KTC unavailable</span> <button class="btn btn-sm btn-secondary" style="font-size:9px;padding:2px 6px" onclick="loadKTC(true)">Retry</button> <button class="btn btn-sm btn-secondary" style="font-size:9px;padding:2px 6px" onclick="openModal('modalKtcImport')">Manual Import</button>`;
+  }
+}
+
+function processKtcManualImport(){
+  const raw=g('ktcImportText').value.trim();
+  if(!raw){g('ktcImportStatus').textContent='Please paste KTC data.';return;}
+  try{
+    // Accept JSON array: [{name, value}, ...] or {name: value, ...}
+    const clean=raw.replace(/```json|```/g,'').trim();
+    const parsed=JSON.parse(clean);
+    const newValues={};
+    if(Array.isArray(parsed)){
+      parsed.forEach(p=>{
+        const name=(p.playerName||p.name||'').toLowerCase().trim();
+        const val=p.value??p.overallValue??null;
+        if(name&&val!=null)newValues[name]=val;
+      });
+    } else if(typeof parsed==='object'){
+      Object.entries(parsed).forEach(([k,v])=>{newValues[k.toLowerCase().trim()]=v;});
+    }
+    if(Object.keys(newValues).length===0)throw new Error('No valid entries found');
+    Object.assign(ktcValues,newValues);
+    saveKTCToCache(newValues);
+    ktcLoaded=true;
+    g('ktcImportStatus').innerHTML=`<span style="color:#1D9E75">Loaded ${Object.keys(newValues).length} player values.</span>`;
+    updateKTCStatusBadge();
+    setTimeout(()=>closeModal('modalKtcImport'),1200);
+  }catch(err){
+    g('ktcImportStatus').innerHTML=`<span style="color:#d06040">Parse error: ${err.message}</span>`;
+  }
+}
+
+function getKTCValue(playerName){
+  if(!playerName)return 0;
+  const clean=playerName.split(' (')[0].toLowerCase().trim();
+  return ktcValues[clean]||0;
+}
+// ── PLAYER AGES ──────────────────────────────────────────────────────────────
+// Age lookup: player display name (without NFL team) -> age
+const PLAYER_AGES={
+  // Rhinos
+  'Drake Maye':23,'Malik Willis':25,'Michael Penix':25,
+  'Jacory Croskey-Merritt':22,'Zach Charbonnet':25,'Tyler Allgeier':25,'Braelon Allen':21,'Emmett Johnson':23,'Jordan James':22,'Kaelon Black':22,'Chris Brooks':25,
+  'CeeDee Lamb':26,'Nico Collins':26,'Rashee Rice':25,'DeVonta Smith':27,'Ladd McConkey':24,'Chris Bell':23,'Jaylin Noel':22,
+  'Harold Fannin':22,'Isaiah Likely':25,
+  // Bookends
+  'Dak Prescott':32,'Tua Tagovailoa':27,'Fernando Mendoza':24,
+  'TreVeyon Henderson':23,'Chuba Hubbard':26,'Rico Dowdle':27,'Kyle Monangai':24,'Isiah Pacheco':27,
+  'Amon-Ra St. Brown':25,'Emeka Egbuka':23,'Khalil Shakir':25,'Jayden Higgins':22,'Michael Wilson':25,'Isaac TeSlaa':23,'Elijah Sarratt':24,
+  'Trey McBride':26,'Dalton Kincaid':26,'Kenyon Sadiq':24,'David Njoku':29,
+  // Wheel
+  'Patrick Mahomes':30,'Jordan Love':27,'C.J. Stroud':24,
+  'Bucky Irving':24,'David Montgomery':28,'Tony Pollard':28,'Tyrone Tracy':25,'Woody Marks':25,'Tyjae Spears':23,'Mike Washington':24,
+  'Jaxon Smith-Njigba':23,'Rome Odunze':22,'Brian Thomas':23,'Jordan Addison':23,'Xavier Worthy':22,'Jordyn Tyson':22,
+  'T.J. Hockenson':28,'Brenton Strange':25,'Greg Dulcich':25,
+  // Salt Pond
+  'Jared Goff':31,'Kyler Murray':28,'Sam Darnold':28,
+  'Christian McCaffrey':29,'Ashton Jeanty':21,"D'Andre Swift":27,'Jadarian Price':22,'Alvin Kamara':30,'Kaleb Johnson':22,
+  'Drake London':24,'George Pickens':23,'Zay Flowers':24,'DK Metcalf':28,'Chris Godwin':29,'KC Concepcion':22,'Tre Tucker':25,
+  'George Kittle':32,'Juwan Johnson':29,
+  // Steelhawks
+  'Lamar Jackson':28,'Jayden Daniels':24,'Deshaun Watson':30,
+  'Jeremiyah Love':22,'Rhamondre Stevenson':26,'J.K. Dobbins':26,'Jonah Coleman':22,
+  'Brandon Aiyuk':27,'Travis Hunter':21,'Josh Downs':24,'Jalen McMillan':23,'Alec Pierce':25,'Tory Horton':24,
+  'Colston Loveland':22,'AJ Barner':24,'Jake Tonges':24,
+  // The Third
+  'Josh Allen':29,'Jalen Hurts':27,'Jaxson Dart':22,
+  'Josh Jacobs':27,'Kyren Williams':25,'Rachaad White':26,'Demond Claiborne':22,
+  'Luther Burden':21,'Courtland Sutton':30,'Jayden Reed':25,'Ricky Pearsall':23,'Rashid Shaheed':27,'Omar Cooper':23,'Jauan Jennings':29,'Denzel Boston':22,"Ja'Kobi Lane":22,
+  'Tucker Kraft':24,'Hunter Henry':31,
+  // DEL OCHO
+  'Brock Purdy':26,'Cam Ward':22,
+  'Bijan Robinson':23,'Omarion Hampton':22,'Breece Hall':24,'Nicholas Singleton':22,'Adam Randall':22,'Jonathon Brooks':23,
+  'Jameson Williams':24,'Mike Evans':32,'Michael Pittman':28,'Makai Lemon':22,"Wan'Dale Robinson":24,'Skyler Bell':23,
+  'Chig Okonkwo':26,'Terrance Ferguson':23,'Eli Raridon':23,'Justin Joly':23,
+  // Meat Shack
+  'Caleb Williams':23,'Aaron Rodgers':42,'Ty Simpson':23,
+  'Cam Skattebo':23,'RJ Harvey':23,'Blake Corum':24,'Devin Neal':22,
+  'Garrett Wilson':25,'Marvin Harrison':22,'Parker Washington':24,'Jalen Coker':23,'Antonio Williams':23,'Ted Hurst':24,
+  'Brock Bowers':22,'Oscar Delp':22,'Max Klare':23,
+  // GreenEggs
+  'Bryce Young':24,'Jacoby Brissett':32,'Carson Beck':23,
+  'Chase Brown':25,'Kenneth Walker':25,'Jordan Mason':26,'Chris Rodriguez':25,'Keaton Mitchell':24,'Kimani Vidal':24,
+  "Ja'Marr Chase":26,'Puka Nacua':24,'Malik Nabers':22,'Davante Adams':33,'Matthew Golden':22,'Stefon Diggs':32,'Jack Bech':22,
+  'Kyle Pitts':24,'Oronde Gadsden':24,'Cade Otton':26,
+  // Duhhh
+  'Matthew Stafford':37,'Baker Mayfield':30,'Daniel Jones':28,
+  'James Cook':25,"De'Von Achane":23,'Saquon Barkley':28,'Derrick Henry':31,'Quinshon Judkins':22,'Tank Bigsby':24,'Ray Davis':25,'Jaylen Wright':23,'Ollie Gordon':22,
+  'Chris Olave':25,'Tetairoa McMillan':21,'Tee Higgins':26,'Jaylen Waddle':27,'Christian Watson':26,'Zachariah Branch':21,
+  'Sam LaPorta':24,'Travis Kelce':36,'Mark Andrews':30,
+  // Warranted
+  'Justin Herbert':27,'Bo Nix':25,'Geno Smith':35,
+  'Jahmyr Gibbs':23,'Javonte Williams':25,'Jaylen Warren':26,'Aaron Jones':31,'Kaytron Allen':22,'MarShawn Lloyd':22,'Eli Heidenreich':23,
+  'Justin Jefferson':26,'Terry McLaurin':29,'Jakobi Meyers':29,'Romeo Doubs':25,'Jerry Jeudy':27,'Germie Bernard':22,
+  'Tyler Warren':24,'Dallas Goedert':30,'Gunnar Helm':23,
+  // Dynasty Depot
+  'Joe Burrow':28,'Trevor Lawrence':26,'Tyler Shough':25,
+  'Jonathan Taylor':26,'Travis Etienne':26,'Bhayshul Tuten':24,'Kenneth Gainwell':26,'Dylan Sampson':22,'Brian Robinson':26,
+  'A.J. Brown':28,'DJ Moore':28,'Carnell Tate':22,'Quentin Johnston':23,"De'Zhaun Stribling":23,"Tre' Harris":24,'Chris Brazzell':22,
+  'Jake Ferguson':26,'Dalton Schultz':30,'Eli Stowers':24
+};
+
+function getPlayerAge(playerStr){
+  const name=playerStr.split(' (')[0];
+  return PLAYER_AGES[name]||null;
+}
+
+function g(id){return document.getElementById(id)}
+function gradeTag(gr){return`<span class="grade grade-${gr}">${gr}</span>`}
+function fragTag(f){return`<span class="tag tag-${f}">${f}</span>`}
+function probTag(p){return`<span class="tag tag-${p.toLowerCase()}">${p}</span>`}
+function deltaTag(d){const cls=d==='high'?'tag-high-delta':`tag-${d}`;return`<span class="tag ${cls}">${d}</span>`}
+function windowTag(w){const map={open:'Open Now',opening:'Opening Soon',retool:'Retool',rebuild:'Rebuild'};return`<span class="tag tag-${w}">${map[w]||w}</span>`}
+function ageTag(pos,age){
+  const t={QB:{y:25,p:30,a:34},RB:{y:23,p:27,a:29},WR:{y:24,p:28,a:31},TE:{y:24,p:28,a:31}}[pos];
+  if(!t)return'';
+  if(age<=t.y)return'<span class="tag" style="background:#0a3d28;color:#1D9E75">young</span>';
+  if(age<=t.p)return'<span class="tag" style="background:#0a1e3a;color:#4a9ede">prime</span>';
+  if(age<=t.a)return'<span class="tag" style="background:#3a2a08;color:#d4950a">aging</span>';
+  return'<span class="tag" style="background:#3a1510;color:#d06040">old</span>';
+}
+
+function pickCapScore(picks27){
+  let score=0;
+  picks27.forEach(p=>{
+    const r=parseInt(p.replace('R',''));
+    if(r===1)score+=10;
+    else if(r===2)score+=5;
+    else if(r===3)score+=2;
+    else score+=0.5;
+  });
+  return Math.round(score);
+}
+
+function maxPickCap(){return Math.max(...TEAMS.map(t=>pickCapScore(t.picks2027)));}
+
+function showTab(tab,el){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  if(el)el.classList.add('active');
+  const c=g('mainContent');
+  expandedRows=new Set();
+  if(tab==='overview')renderOverview(c);
+  else if(tab==='compare')renderCompare(c);
+  else if(tab==='trade')renderTrade(c);
+  else if(tab==='power')renderPower(c);
+  else if(tab==='age')renderAge(c);
+  else if(tab==='roster')renderRoster(c);
+}
+
+function openModal(id){g(id).classList.add('open')}
+function closeModal(id){g(id).classList.remove('open')}
+
+// ── INDICATOR HELPERS ─────────────────────────────────────────────────────────
+function indGrade(g){return`<span class="ind-grade ind-g${g}">${g}</span>`}
+function indProb(p){const k=p==='High'?'Hi':p==='Medium'?'Mid':'Lo';return`<span class="ind-prob ind-${k}">${k}</span>`}
+function indDepth(f){const k=f==='antifragile'?'AF':f==='robust'?'R':'F';return`<span class="ind-depth ind-${k}">${k}</span>`}
+function posIndicators(pos){
+  return`<div class="pos-indicators">${indGrade(pos.floor)}<span class="ind-arrow">→</span>${indGrade(pos.ceil)}<span class="ind-sep">·</span>${indProb(pos.prob)}<span class="ind-sep">·</span>${indDepth(pos.frag)}</div>`
+}
+
+// ── OVERVIEW ──────────────────────────────────────────────────────────────────
+function renderOverview(c){
+  const filtered=TEAMS.filter(t=>overviewFilter==='all'||t.window===overviewFilter);
+
+  let html=`
+  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:14px">
+    <div class="filter-row" style="margin:0;gap:6px">
+      ${['all','open','opening','retool','rebuild'].map(f=>`<button class="filter-btn ${overviewFilter===f?'active':''}" onclick="overviewFilter='${f}';renderOverview(g('mainContent'))">${f==='all'?'All Teams':f==='open'?'Open Now':f==='opening'?'Opening Soon':f.charAt(0).toUpperCase()+f.slice(1)}</button>`).join('')}
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <button class="btn btn-sm ${showAges?'btn-primary':'btn-secondary'}" onclick="showAges=!showAges;renderOverview(g('mainContent'))" style="font-size:10px">Ages ${showAges?'ON':'OFF'}</button>
+      <div class="toggle-group">
+        <button class="toggle-btn ${overviewMode==='assessment'?'active':''}" onclick="overviewMode='assessment';renderOverview(g('mainContent'))">Assessment</button>
+        <button class="toggle-btn ${overviewMode==='assets'?'active':''}" onclick="overviewMode='assets';renderOverview(g('mainContent'))">Assets</button>
+      </div>
+    </div>
+  </div>`;
+
+  if(overviewMode==='assessment'){
+    html+=`<div style="overflow-x:auto"><table class="overview-table">
+    <thead><tr>
+      <th style="min-width:170px">Team</th>
+      <th style="min-width:160px">QB / SF</th>
+      <th style="min-width:200px">RB</th>
+      <th style="min-width:220px">WR</th>
+      <th style="min-width:150px">TE</th>
+      <th style="min-width:200px;background:#0d1a10;border-left:2px solid #1D9E75;color:#1D9E75">⚡ FLEX</th>
+    </tr></thead><tbody id="overviewTbody">`;
+
+    filtered.forEach(t=>{
+      const isExp=expandedRows.has(t.id);
+      const symWindow=`sym-${t.window}`;
+      const symFrag=`sym-${t.overall.frag==='antifragile'?'anti':t.overall.frag}`;
+      const cap=pickCapScore(t.picks2027);
+
+      html+=`<tr class="team-row ${t.us?'us':''} ${isExp?'expanded':''}" id="teamrow-${t.id}" onclick="toggleTeamRow('${t.id}')">
+        <td>
+          <div style="display:flex;align-items:flex-start;gap:6px">
+            <span class="chev ${isExp?'open':''}" id="chev-${t.id}" style="margin-top:3px">▼</span>
+            <div>
+              <div class="tname ${t.us?'us':''}">${t.us?'★ ':''}${t.name}</div>
+              <div class="sym-row">
+                <span class="sym sym-overall">${gradeTagInline(t.overall.floor)}→${gradeTagInline(t.overall.ceil)}</span>
+                <span class="sym ${symWindow}">${{open:'Open Now',opening:'Opening',retool:'Retool',rebuild:'Rebuild'}[t.window]}</span>
+                <span class="sym ${symFrag}">${t.overall.frag==='antifragile'?'AF':t.overall.frag==='robust'?'Rob':'Frag'}</span>
+                <span class="sym sym-cap">Cap ${cap}</span>
+                ${t.primeConcern?'<span class="sym sym-warn">⚠ aging</span>':''}
+              </div>
+            </div>
+          </div>
+        </td>
+        <td>
+          ${posIndicators(t.qb)}
+          <div class="player-list">
+            ${t.qb.starters.map(p=>playerItem(p,true,showAges)).join('')}
+            ${t.qb.depth.map(p=>playerItem(p,false,showAges)).join('')}
+          </div>
+        </td>
+        <td>
+          ${posIndicators(t.rb)}
+          <div class="player-list">
+            ${t.rb.starters.map(p=>playerItem(p,true,showAges)).join('')}
+            ${t.rb.depth.map(p=>playerItem(p,false,showAges)).join('')}
+          </div>
+        </td>
+        <td>
+          ${posIndicators(t.wr)}
+          <div class="player-list">
+            ${t.wr.starters.map(p=>playerItem(p,true,showAges)).join('')}
+            ${t.wr.depth.length>0?`<div class="player-item"><span class="pname">${t.wr.depth.map(p=>{const n=p.split(' (')[0];const age=showAges?getPlayerAge(p):null;return n+(age?` <span style="font-family:'DM Mono',monospace;font-size:9px;padding:1px 3px;border-radius:3px;background:#1e2a1e;color:#4a8c60">${age}</span>`:'')} ).join(' · ')}</span></div>`:''}
+          </div>
+        </td>
+        <td>
+          ${posIndicators(t.te)}
+          <div class="player-list">
+            ${t.te.starters.map(p=>playerItem(p,true,showAges)).join('')}
+            ${t.te.depth.map(p=>playerItem(p,false,showAges)).join('')}
+          </div>
+        </td>
+        <td style="background:#0a1a0e;border-left:2px solid #1a3a22">
+          ${posIndicators(t.flex)}
+          <div class="player-list">
+            ${(()=>{
+              // Position grade as numeric fallback score
+              const posGradeScore=(pos)=>({S:4,A:3,B:2,C:1}[t[pos.toLowerCase()]?.floor]||1);
+              // Collect all RB/WR/TE depth players with a sort score
+              const flexPool=[
+                ...t.rb.depth.map(p=>({p,pos:'RB',baseScore:posGradeScore('rb')})),
+                ...t.wr.depth.map(p=>({p,pos:'WR',baseScore:posGradeScore('wr')})),
+                ...t.te.depth.map(p=>({p,pos:'TE',baseScore:posGradeScore('te')}))
+              ].map(item=>{
+                const ktcVal=getKTCValue(item.p);
+                // KTC value scaled to 0-4 range; fallback to position grade
+                const sortScore=ktcVal>0?(ktcVal/2500)*4:item.baseScore;
+                return{...item,sortScore,ktcVal};
+              }).sort((a,b)=>b.sortScore-a.sortScore);
+
+              return flexPool.map((item,i)=>{
+                const isStarter=i<2;
+                const name=item.p.split(' (')[0];
+                const nfl=item.p.match(/\(([^)]+)\)/)?.[1]||'';
+                const age=showAges?getPlayerAge(item.p):null;
+                const ageHtml=age?`<span style="font-family:'DM Mono',monospace;font-size:9px;padding:1px 4px;border-radius:3px;background:#1e2a1e;color:#4a8c60;margin-left:2px">${age}</span>`:'';
+                const posHtml=`<span class="pos-badge pos-${item.pos}" style="font-size:9px;padding:1px 4px">${item.pos}</span>`;
+                const ktcHtml=item.ktcVal&&isStarter?`<span style="font-family:'DM Mono',monospace;font-size:9px;color:#4a9ede;margin-left:auto">${item.ktcVal}</span>`:'';
+                if(isStarter){
+                  return`<div class="player-item" style="background:#0d2218;border-radius:3px;padding:1px 3px;margin-bottom:1px;gap:4px">${posHtml}<span class="pname starter" style="color:#c8e6c9;flex:1">${name}${ageHtml}</span><span class="pnfl">${nfl}</span>${ktcHtml}</div>`;
+                }
+                return`<div class="player-item">${posHtml}<span class="pname">${name}${ageHtml}</span><span class="pnfl">${nfl}</span></div>`;
+              }).join('');
+            })()}
+          </div>
+        </td>
+      </tr>`;
+
+      // Detail row
+      html+=`<tr class="detail-row" id="detail-${t.id}" style="display:${isExp?'table-row':'none'}">
+        <td colspan="6">
+          <div class="detail-inner">
+            <div class="detail-grid">
+              <div class="det-section">
+                <div class="det-label">Position grades</div>
+                ${detailGradeRow('QB / SF',t.qb,false)}
+                ${detailGradeRow('RB',t.rb,false)}
+                ${detailGradeRow('WR',t.wr,false)}
+                ${detailGradeRow('TE',t.te,false)}
+                <div class="det-divider"></div>
+                ${detailGradeRow('Flex',t.flex,true,t.flex.note)}
+                ${detailGradeRow('Flex Depth',t.flexDepth,true,t.flexDepth.note)}
+              </div>
+              <div class="det-section">
+                <div class="det-label">Overall</div>
+                <div class="grade-row" style="margin-bottom:10px">
+                  <span style="font-family:'DM Mono',monospace;font-size:10px;color:#666">Floor <span style="color:#aaa">${gradeTagInline(t.overall.floor)}</span></span>
+                  <span style="color:#333;font-size:11px">→</span>
+                  <span style="font-family:'DM Mono',monospace;font-size:10px;color:#666">Ceil <span style="color:#aaa">${gradeTagInline(t.overall.ceil)}</span></span>
+                  ${deltaTag(t.overall.delta)} ${fragTag(t.overall.frag)}
+                </div>
+                <div style="margin-bottom:12px">${windowTag(t.window)}<span style="font-size:11px;color:#555;margin-left:8px">${t.windowNote}</span></div>
+                <div class="det-label">Needs</div>
+                <div class="trade-need" style="margin-bottom:10px">${t.needs.map(n=>`<span class="need-pill">${n}</span>`).join('')}</div>
+                <div class="det-label">Surplus</div>
+                <div class="trade-need">${t.surplus.map(n=>`<span class="surplus-pill">${n}</span>`).join('')}</div>
+              </div>
+            </div>
+            <div class="det-section">
+              <div class="det-label">Philosophy</div>
+              <div class="philosophy">${t.philosophy}</div>
+            </div>
+          </div>
+        </td>
+      </tr>`;
+    });
+
+    html+=`</tbody></table></div>
+    <div style="font-size:11px;color:#333;margin-top:12px;padding:0 2px">
+      Legend: grade range = Floor→Ceil &nbsp;·&nbsp; Hi/Mid/Lo = ceiling probability &nbsp;·&nbsp; R = Robust &nbsp;·&nbsp; AF = Antifragile &nbsp;·&nbsp; F = Fragile
+    </div>`;
+
+  } else {
+    // Assets view
+    const maxCap=maxPickCap();
+    const sorted=[...filtered].sort((a,b)=>pickCapScore(b.picks2027)-pickCapScore(a.picks2027));
+    html+=`<div style="overflow-x:auto"><table class="overview-table">
+    <thead><tr>
+      <th>Team</th><th>2027 Pick Capital</th><th>R1 Picks</th><th>R2 Picks</th><th>RB Depth</th><th>WR Depth</th><th>TE Depth</th><th>Needs</th>
+    </tr></thead><tbody>`;
+    sorted.forEach(t=>{
+      const cap=pickCapScore(t.picks2027);
+      const pct=Math.round(cap/maxCap*100);
+      const r1=t.picks2027.filter(p=>p==='R1').length;
+      const r2=t.picks2027.filter(p=>p==='R2').length;
+      html+=`<tr class="team-row ${t.us?'us':''}" style="cursor:default">
+        <td class="tname ${t.us?'us':''}">${t.us?'★ ':''}${t.name}</td>
+        <td>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:700;color:${cap>=30?'#1D9E75':cap>=20?'#4a9ede':cap>=12?'#d4950a':'#d06040'}">${cap}</div>
+          <div class="cap-bar-track" style="width:90px"><div class="cap-bar-fill" style="width:${pct}%"></div></div>
+          <div class="picks-grid" style="margin-top:6px">${t.picks2027.map(p=>{const r=parseInt(p.replace('R',''));return`<span class="pick-pill ${r===1?'r1':r===2?'r2':r===3?'r3':''}">${p}</span>`}).join('')}</div>
+        </td>
+        <td><span style="font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:700;color:${r1>=2?'#1D9E75':r1===1?'#4a9ede':'#555'}">${r1}</span></td>
+        <td><span style="font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:700;color:${r2>=2?'#1D9E75':r2===1?'#4a9ede':'#555'}">${r2}</span></td>
+        <td>${gradeTag(t.rb.ceil)} ${fragTag(t.rb.frag)}<div style="font-family:'DM Mono',monospace;font-size:10px;color:#555;margin-top:3px">${t.rb.depth.length} depth</div></td>
+        <td>${gradeTag(t.wr.ceil)} ${fragTag(t.wr.frag)}<div style="font-family:'DM Mono',monospace;font-size:10px;color:#555;margin-top:3px">${t.wr.depth.length} depth</div></td>
+        <td>${gradeTag(t.te.ceil)} ${fragTag(t.te.frag)}<div style="font-family:'DM Mono',monospace;font-size:10px;color:#555;margin-top:3px">${t.te.depth.length} depth</div></td>
+        <td><div class="trade-need">${t.needs.map(n=>`<span class="need-pill">${n}</span>`).join('')}</div></td>
+      </tr>`;
+    });
+    html+=`</tbody></table></div>`;
+  }
+
+  c.innerHTML=html;
+}
+
+function gradeTagInline(gr){
+  const colors={S:'#1D9E75',A:'#4a9ede',B:'#888',C:'#d06040'};
+  const bgs={S:'#0a3d28',A:'#0a1e3a',B:'#2a2826',C:'#3a1510'};
+  return`<span style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:11px;padding:1px 5px;border-radius:3px;background:${bgs[gr]};color:${colors[gr]}">${gr}</span>`;
+}
+
+function playerItem(p,isStarter,showAge){
+  const name=p.split(' (')[0];
+  const nfl=p.match(/\(([^)]+)\)/)?.[1]||'';
+  const age=showAge?getPlayerAge(p):null;
+  const ageHtml=age?`<span style="font-family:'DM Mono',monospace;font-size:9px;padding:1px 4px;border-radius:3px;background:#1e2a1e;color:#4a8c60;margin-left:2px">${age}</span>`:'';
+  return`<div class="player-item"><span class="pname ${isStarter?'starter':''}">${name}${ageHtml}</span><span class="pnfl">${nfl}</span></div>`;
+}
+
+function detailGradeRow(label,pos,dimmed,note){
+  const probColor=pos.prob==='High'?'#1D9E75':pos.prob==='Medium'?'#d4950a':'#666';
+  return`<div class="pos-grade-row ${dimmed?'dimmed':''}">
+    <span class="pgl">${label}</span>
+    <span class="gm" style="font-family:'DM Mono',monospace;font-size:10px;color:#666">Floor <span style="color:#aaa">${gradeTagInline(pos.floor)}</span></span>
+    <span style="color:#333;font-size:10px">→</span>
+    <span class="gm" style="font-family:'DM Mono',monospace;font-size:10px;color:#666">Ceil <span style="color:#aaa">${gradeTagInline(pos.ceil)}</span></span>
+    <span style="font-family:'DM Mono',monospace;font-size:10px;color:#666;margin-left:2px">Prob <span style="color:${probColor}">${pos.prob}</span></span>
+    ${fragTag(pos.frag)}
+    ${note?`<span class="flex-note">${note}</span>`:''}
+  </div>`;
+}
+
+function toggleTeamRow(id){
+  if(expandedRows.has(id)){expandedRows.delete(id);}else{expandedRows.add(id);}
+  const detailRow=g(`detail-${id}`);
+  const chevEl=g(`chev-${id}`);
+  const teamRow=g(`teamrow-${id}`);
+  if(detailRow){detailRow.style.display=expandedRows.has(id)?'table-row':'none';}
+  if(chevEl){chevEl.classList.toggle('open',expandedRows.has(id));}
+  if(teamRow){teamRow.classList.toggle('expanded',expandedRows.has(id));}
+}
+
+// ── COMPARE ───────────────────────────────────────────────────────────────────
+function renderCompare(c){
+  const teamOpts=(sel)=>TEAMS.map(t=>`<option value="${t.id}" ${t.id===sel?'selected':''}>${t.us?'★ ':''}${t.name}</option>`).join('');
+  const tA=TEAMS.find(t=>t.id===compareA);
+  const tB=TEAMS.find(t=>t.id===compareB);
+
+  // Shared header
+  let html=`
+  <div class="filter-row" style="justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:14px">
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      <select onchange="compareA=this.value;renderCompare(g('mainContent'))">${teamOpts(compareA)}</select>
+      <span style="font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:700;color:#444;padding:0 4px">vs</span>
+      <select onchange="compareB=this.value;renderCompare(g('mainContent'))">${teamOpts(compareB)}</select>
+    </div>
+    <div class="toggle-group">
+      <button class="toggle-btn ${compareMode==='matchup'?'active':''}" onclick="compareMode='matchup';renderCompare(g('mainContent'))">Matchup View</button>
+      <button class="toggle-btn ${compareMode==='construction'?'active':''}" onclick="compareMode='construction';renderCompare(g('mainContent'))">Roster Construction</button>
+    </div>
+  </div>`;
+
+  if(compareMode==='matchup'){
+    html+=renderMatchupView(tA,tB);
+  } else {
+    html+=renderConstructionView(tA,tB);
+  }
+
+  // Trade angle if Rhinos is one team
+  if(tA.id==='rhinos'||tB.id==='rhinos'){
+    const other=tA.id==='rhinos'?tB:tA;
+    const rhinos=TEAMS.find(t=>t.us);
+    html+=`<div class="divider"></div>
+    <div class="sub-header">Trade Angle · Rhinos vs ${other.name}</div>
+    <div class="card">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <div>
+          <div class="section-label" style="margin-bottom:5px">They need</div>
+          <div class="trade-need" style="margin-bottom:10px">${other.needs.map(n=>`<span class="need-pill">${n}</span>`).join('')}</div>
+          <div class="section-label" style="margin-bottom:5px">We can offer</div>
+          <div class="trade-need">${rhinos.surplus.map(n=>`<span class="surplus-pill">${n}</span>`).join('')}</div>
+        </div>
+        <div>
+          <div class="section-label" style="margin-bottom:5px">We need</div>
+          <div class="trade-need" style="margin-bottom:10px">${rhinos.needs.map(n=>`<span class="need-pill">${n}</span>`).join('')}</div>
+          <div class="section-label" style="margin-bottom:5px">They can offer</div>
+          <div class="trade-need">${other.surplus.map(n=>`<span class="surplus-pill">${n}</span>`).join('')}</div>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  c.innerHTML=html;
+}
+
+function compareRow(label,posA,posB,showPlayers){
+  const ga=GRADE_ORDER[posA.floor],gb=GRADE_ORDER[posB.floor]; // matchup uses floor
+  const adv=ga>gb?'◄':gb>ga?'►':'=';
+  const advColor=ga>gb?'#1D9E75':gb>ga?'#d06040':'#555';
+  const playersA=(posA.starters||[]).slice(0,2).join(', ');
+  const playersB=(posB.starters||[]).slice(0,2).join(', ');
+  return`<div class="compare-grid">
+    <div>
+      <div>${gradeTag(posA.floor)}→${gradeTag(posA.ceil)} ${probTag(posA.prob)}</div>
+      <div style="margin-top:3px">${fragTag(posA.frag)}</div>
+      ${showPlayers?`<div class="players-list">${playersA}</div>`:''}
+    </div>
+    <div class="compare-mid">
+      <div style="font-size:10px;color:#444;margin-bottom:4px">${label}</div>
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:700;color:${advColor}">${adv}</div>
+    </div>
+    <div style="text-align:right">
+      <div>${gradeTag(posB.floor)}→${gradeTag(posB.ceil)} ${probTag(posB.prob)}</div>
+      <div style="margin-top:3px;text-align:right">${fragTag(posB.frag)}</div>
+      ${showPlayers?`<div class="players-list" style="text-align:right">${playersB}</div>`:''}
+    </div>
+  </div>`;
+}
+
+function renderMatchupView(tA,tB){
+  // Matchup View: floor-based, simulates next week matchup
+  // Positions: QB/SF, RB, WR, TE, Flex — uses floor as the measure
+  const nameA=tA.name.split(' ').slice(0,2).join(' ');
+  const nameB=tB.name.split(' ').slice(0,2).join(' ');
+
+  const positions=[
+    {key:'qb',label:'QB / SF'},
+    {key:'rb',label:'RB'},
+    {key:'wr',label:'WR'},
+    {key:'te',label:'TE'},
+    {key:'flex',label:'Flex'}
+  ];
+
+  // Score matchup: count position wins by floor grade
+  let scoreA=0,scoreB=0;
+  const rows=positions.map(p=>{
+    const posA=tA[p.key],posB=tB[p.key];
+    const ga=GRADE_ORDER[posA.floor],gb=GRADE_ORDER[posB.floor];
+    if(ga>gb)scoreA++;else if(gb>ga)scoreB++;
+    const adv=ga>gb?'◄':gb>ga?'►':'=';
+    const advColor=ga>gb?'#1D9E75':gb>ga?'#d06040':'#555';
+    const isFlexRow=p.key==='flex';
+    const bgStyle=isFlexRow?'background:#0a1a0e;border:1px solid #1a3a22':'' ;
+    return`<div class="compare-grid" style="${bgStyle}">
+      <div>
+        <div class="compare-pos-label">${tA.us?'★ ':''}${nameA}</div>
+        <div>${gradeTag(posA.floor)} <span style="color:#444;font-size:10px">floor</span></div>
+        <div style="margin-top:2px">${fragTag(posA.frag)}</div>
+        ${isFlexRow?`<div style="font-size:10px;color:#555;font-style:italic;margin-top:3px">${posA.note||''}</div>`:`<div class="players-list">${(posA.starters||[]).slice(0,2).join(', ')}</div>`}
+      </div>
+      <div class="compare-mid">
+        <div style="font-size:10px;color:${isFlexRow?'#1D9E75':'#444'};margin-bottom:4px;font-weight:${isFlexRow?'700':'400'}">${isFlexRow?'⚡ '+p.label:p.label}</div>
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:700;color:${advColor}">${adv}</div>
+      </div>
+      <div style="text-align:right">
+        <div class="compare-pos-label">${tB.us?'★ ':''}${nameB}</div>
+        <div>${gradeTag(posB.floor)} <span style="color:#444;font-size:10px">floor</span></div>
+        <div style="margin-top:2px;text-align:right">${fragTag(posB.frag)}</div>
+        ${isFlexRow?`<div style="font-size:10px;color:#555;font-style:italic;margin-top:3px;text-align:right">${posB.note||''}</div>`:`<div class="players-list" style="text-align:right">${(posB.starters||[]).slice(0,2).join(', ')}</div>`}
+      </div>
+    </div>`;
+  }).join('');
+
+  // Overall floor comparison
+  const goA=GRADE_ORDER[tA.overall.floor],goB=GRADE_ORDER[tB.overall.floor];
+  const overallRow=`<div class="compare-grid" style="background:#161616;border:1px solid #2a2a2a">
+    <div><div class="compare-pos-label">Overall Floor</div><div>${gradeTag(tA.overall.floor)} ${deltaTag(tA.overall.delta)} ${fragTag(tA.overall.frag)}</div><div style="margin-top:4px">${windowTag(tA.window)}</div></div>
+    <div class="compare-mid"><div style="font-size:10px;color:#444;margin-bottom:4px">Matchup Edge</div><div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:700;color:${goA>goB?'#1D9E75':goB>goA?'#d06040':'#555'}">${goA>goB?`${nameA.split(' ')[0]}`:goB>goA?`${nameB.split(' ')[0]}`:'EVEN'}</div><div style="font-size:10px;color:#555;margin-top:2px">${scoreA}-${scoreB} positions</div></div>
+    <div style="text-align:right"><div class="compare-pos-label">Overall Floor</div><div>${gradeTag(tB.overall.floor)} ${deltaTag(tB.overall.delta)} ${fragTag(tB.overall.frag)}</div><div style="margin-top:4px;text-align:right">${windowTag(tB.window)}</div></div>
+  </div>`;
+
+  return`<div style="margin-bottom:6px;font-size:11px;color:#555;font-style:italic">Matchup View uses floor grades — reliable weekly output assuming average injury luck.</div>
+  <div style="overflow-y:auto;max-height:650px">${rows}${overallRow}</div>`;
+}
+
+function renderConstructionView(tA,tB){
+  // Construction View: ceiling-based depth and elite weapon comparison
+  const nameA=tA.name.split(' ').slice(0,2).join(' ');
+  const nameB=tB.name.split(' ').slice(0,2).join(' ');
+
+  const positions=[
+    {key:'qb',label:'QB / SF'},
+    {key:'rb',label:'RB Depth'},
+    {key:'wr',label:'WR Room'},
+    {key:'te',label:'TE'},
+    {key:'flex',label:'⚡ Flex'},
+    {key:'flexDepth',label:'Flex Depth'}
+  ];
+
+  const rows=positions.map(p=>{
+    const posA=tA[p.key],posB=tB[p.key];
+    const ga=GRADE_ORDER[posA.ceil],gb=GRADE_ORDER[posB.ceil]; // construction uses ceiling
+    const adv=ga>gb?'◄':gb>ga?'►':'=';
+    const advColor=ga>gb?'#1D9E75':gb>ga?'#d06040':'#555';
+    const isFlexRow=p.key==='flex';
+    const bgStyle=isFlexRow?'background:#0a1a0e;border:1px solid #1a3a22':'';
+    return`<div class="compare-grid" style="${bgStyle}">
+      <div>
+        <div class="compare-pos-label">${tA.us?'★ ':''}${nameA}</div>
+        <div>${gradeTag(posA.floor)}→${gradeTag(posA.ceil)} ${probTag(posA.prob)}</div>
+        <div style="margin-top:3px">${fragTag(posA.frag)}</div>
+        <div class="players-list">${(posA.starters||[]).slice(0,2).join(', ')}</div>
+      </div>
+      <div class="compare-mid">
+        <div style="font-size:10px;color:${isFlexRow?'#1D9E75':'#444'};font-weight:${isFlexRow?'700':'400'};margin-bottom:4px">${p.label}</div>
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:700;color:${advColor}">${adv}</div>
+      </div>
+      <div style="text-align:right">
+        <div class="compare-pos-label">${tB.us?'★ ':''}${nameB}</div>
+        <div>${gradeTag(posB.floor)}→${gradeTag(posB.ceil)} ${probTag(posB.prob)}</div>
+        <div style="margin-top:3px;text-align:right">${fragTag(posB.frag)}</div>
+        <div class="players-list" style="text-align:right">${(posB.starters||[]).slice(0,2).join(', ')}</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  // Elite weapons section
+  const eliteA=[...tA.qb.starters,...tA.rb.starters,...tA.wr.starters,...tA.te.starters].slice(0,3);
+  const eliteB=[...tB.qb.starters,...tB.rb.starters,...tB.wr.starters,...tB.te.starters].slice(0,3);
+
+  const eliteSection=`<div class="compare-grid" style="background:#161616;border:1px solid #2a2a2a;margin-top:8px">
+    <div>
+      <div class="compare-pos-label">Elite Weapons</div>
+      <div class="player-list">${eliteA.map(p=>playerItem(p,true)).join('')}</div>
+    </div>
+    <div class="compare-mid"><div style="font-size:10px;color:#444">Top Assets</div></div>
+    <div style="text-align:right">
+      <div class="compare-pos-label">Elite Weapons</div>
+      <div class="player-list" style="align-items:flex-end">${eliteB.map(p=>playerItem(p,true)).join('')}</div>
+    </div>
+  </div>`;
+
+  // Pick capital
+  const capA=pickCapScore(tA.picks2027),capB=pickCapScore(tB.picks2027);
+  const pickSection=`<div class="compare-grid" style="background:#161616;border:1px solid #2a2a2a">
+    <div><div class="compare-pos-label">Pick Capital (2027)</div><div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;color:#1D9E75">${capA}</div><div class="picks-grid" style="margin-top:4px">${tA.picks2027.filter(p=>parseInt(p.replace('R',''))<=2).map(p=>`<span class="pick-pill ${p==='R1'?'r1':'r2'}">${p}</span>`).join('')}</div></div>
+    <div class="compare-mid"><div style="font-size:10px;color:#444;margin-bottom:4px">Picks</div><div style="font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:700;color:${capA>capB?'#1D9E75':capB>capA?'#d06040':'#555'}">${capA>capB?'◄':capB>capA?'►':'='}</div></div>
+    <div style="text-align:right"><div class="compare-pos-label">Pick Capital (2027)</div><div style="font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:700;color:#1D9E75;text-align:right">${capB}</div><div class="picks-grid" style="margin-top:4px;justify-content:flex-end">${tB.picks2027.filter(p=>parseInt(p.replace('R',''))<=2).map(p=>`<span class="pick-pill ${p==='R1'?'r1':'r2'}">${p}</span>`).join('')}</div></div>
+  </div>`;
+
+  return`<div style="margin-bottom:6px;font-size:11px;color:#555;font-style:italic">Roster Construction uses ceiling grades — dynasty depth, elite weapons, and long-term build quality.</div>
+  <div style="overflow-y:auto;max-height:650px">${rows}${eliteSection}${pickSection}</div>`;
+}
+
+// ── TRADE TYPE AUTO-TAGGER ────────────────────────────────────────────────────
+// Colors and labels for trade type tags
+const TRADE_TYPE_STYLES={
+  '2-for-1 upgrade':   {bg:'#1a1a2e',border:'#4a9ede',color:'#4a9ede'},
+  'sell aging stars':  {bg:'#3a1510',border:'#d06040',color:'#d06040'},
+  'buy QB now':        {bg:'#1e0a3a',border:'#9b6aee',color:'#9b6aee'},
+  'sell for picks':    {bg:'#0a3d28',border:'#1D9E75',color:'#1D9E75'},
+  'buy picks/youth':   {bg:'#0a3d28',border:'#1D9E75',color:'#1D9E75'},
+  'win-now swap':      {bg:'#0a1e3a',border:'#4a9ede',color:'#4a9ede'},
+  'buy proven RB':     {bg:'#3a2a08',border:'#d4950a',color:'#d4950a'},
+  'sell WR surplus':   {bg:'#3a2a08',border:'#d4950a',color:'#d4950a'},
+  'buy low rebuild':   {bg:'#2a2826',border:'#888',color:'#888'},
+  'straight swap':     {bg:'#161616',border:'#444',color:'#888'},
+};
+
+function tradeTypeTag(label){
+  const s=TRADE_TYPE_STYLES[label]||{bg:'#161616',border:'#444',color:'#888'};
+  return`<span style="font-family:'DM Mono',monospace;font-size:10px;padding:2px 7px;border-radius:3px;background:${s.bg};border:1px solid ${s.border};color:${s.color};display:inline-block">${label}</span>`;
+}
+
+function getTradeTypes(team){
+  // Auto-generate 1-3 trade type labels based on the team's data
+  const tags=[];
+  const G=GRADE_ORDER;
+  const winOpen=team.window==='open'||team.window==='opening';
+  const rebuilding=team.window==='rebuild'||team.window==='retool';
+  const r1Count=team.picks2027.filter(p=>p==='R1').length;
+  const r2Count=team.picks2027.filter(p=>p==='R2').length;
+  const pickRich=(r1Count+r2Count)>=3;
+  const pickPoor=(r1Count+r2Count)<=1&&team.picks2027.length<=3;
+  const qbWeak=G[team.qb.floor]<=2;
+  const rbWeak=G[team.rb.floor]<=2&&G[team.rb.ceil]<=3;
+  const wrStrong=G[team.wr.ceil]>=3;
+  const wrWeak=G[team.wr.floor]<=2;
+  const teStrong=G[team.te.ceil]>=3;
+  const rbStrong=G[team.rb.ceil]>=3;
+  const aging=team.primeConcern||(team.age.RB>=29&&team.age.QB>=32);
+  const young=team.age.QB<=26&&team.age.WR<=25&&team.age.RB<=25;
+
+  // Priority ordering — most interesting first
+  if(qbWeak&&winOpen) tags.push('buy QB now');
+  if(aging||rebuilding) tags.push('sell aging stars');
+  if(pickRich&&winOpen) tags.push('sell for picks');
+  if(pickPoor&&rebuilding) tags.push('buy picks/youth');
+  if(rbWeak&&(wrStrong||teStrong)&&winOpen) tags.push('2-for-1 upgrade');
+  if(rbWeak&&winOpen) tags.push('buy proven RB');
+  if(wrWeak&&rbStrong) tags.push('sell WR surplus');
+  if(rebuilding&&!aging) tags.push('buy low rebuild');
+  if(winOpen&&!qbWeak&&!rbWeak) tags.push('win-now swap');
+
+  // De-dup and limit to 3
+  return[...new Set(tags)].slice(0,3);
+}
+
+// ── TRADE ─────────────────────────────────────────────────────────────────────
+const TRADE_TARGETS=[
+  {id:'duhhh',matchScore:5,rationale:"The richest RB room in the league paired with the worst QB situation. They desperately need a QB — Stafford/Mayfield is a weekly handicap. Willis (functional SF) or Penix (upside play) could be part of a package. Target: James Cook or De'Von Achane for WR depth + QB asset + picks.",
+    weOffer:['WR depth','QB asset','Draft picks'],weGet:['RB proven starter'],
+    offerRoles:['WR','QB'],offerPicks:true,
+    targetRoles:['RB'],targetPlayers:["James Cook","De'Von Achane"]},
+  {id:'greeneggs',matchScore:5,rationale:"S-tier WR room wasted on C-tier QB. Kyle Pitts or RB depth available. A QB asset + picks package for Pitts or Walker/Chase Brown gives them QB breathing room while we address our biggest need.",
+    weOffer:['QB asset','WR depth','Picks'],weGet:['TE or RB proven'],
+    offerRoles:['QB','WR'],offerPicks:true,
+    targetRoles:['RB','TE'],targetPlayers:['Kyle Pitts','Chase Brown','Kenneth Walker']},
+  {id:'warranted',matchScore:4,rationale:"Deep at RB and TE but thin at WR. We're the exact opposite. A Rhinos WR (Smith, McConkey, or Noel breakout) for a proven RB swap is clean and immediately improves both teams.",
+    weOffer:['WR depth','Picks'],weGet:['RB proven'],
+    offerRoles:['WR'],offerPicks:false,
+    targetRoles:['RB'],targetPlayers:['Jahmyr Gibbs','Javonte Williams']},
+  {id:'depot',matchScore:3,rationale:"Burrow/Lawrence is solid but they lack a TE1 upgrade path. Isaiah Likely has standalone TE appeal. Taylor or Etienne at risk — monitor for injury-motivated deals mid-season.",
+    weOffer:['TE depth','WR depth','Picks'],weGet:['RB proven'],
+    offerRoles:['TE','WR'],offerPicks:true,
+    targetRoles:['RB'],targetPlayers:['Jonathan Taylor','Travis Etienne']},
+  {id:'third',matchScore:3,rationale:"Allen/Hurts are the most tradeable QBs in the league. Their WR/TE room is a genuine weakness. A Hurts acquisition would transform our floor.",
+    weOffer:['WR1 + picks'],weGet:['QB1 upgrade'],
+    offerRoles:['WR'],offerPicks:true,
+    targetRoles:['QB'],targetPlayers:['Jalen Hurts']},
+  {id:'meatshack',matchScore:3,rationale:"Bowers + Harrison + G. Wilson are elite assets but Rodgers at SF kills the floor weekly. If Caleb Williams struggles, they may want to move Bowers. We offer WR depth + picks.",
+    weOffer:['QB asset','WR depth','Picks'],weGet:['TE elite (Bowers)'],
+    offerRoles:['QB','WR'],offerPicks:true,
+    targetRoles:['TE'],targetPlayers:['Brock Bowers']}
+];
+
+let tradeCalcRhinosSide=[];
+let tradeCalcTargetSide=[];
+let openTradeTargetId=null;
+
+function renderTrade(c){
+  const rhinos=TEAMS.find(t=>t.us);
+  let html=`<div class="section-label" style="margin-bottom:12px">Trade targets for Rhinos #630 · Sorted by match quality</div>
+  <div class="card us" style="margin-bottom:16px">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div><div class="section-label" style="margin-bottom:4px">Our needs</div><div class="trade-need">${rhinos.needs.map(n=>`<span class="need-pill">${n}</span>`).join('')}</div></div>
+      <div><div class="section-label" style="margin-bottom:4px">Our surplus</div><div class="trade-need">${rhinos.surplus.map(n=>`<span class="surplus-pill">${n}</span>`).join('')}</div></div>
+    </div>
+    <div class="divider" style="margin:10px 0 8px"></div>
+    <div class="section-label" style="margin-bottom:4px">2027 pick capital</div>
+    <div class="picks-grid">${rhinos.picks2027.map(p=>{const r=parseInt(p.replace('R',''));return`<span class="pick-pill ${r===1?'r1':r===2?'r2':'r3'}">${p}</span>`}).join('')}</div>
+  </div>`;
+
+  TRADE_TARGETS.forEach(tgt=>{
+    const team=TEAMS.find(t=>t.id===tgt.id);
+    const cap=pickCapScore(team.picks2027);
+    const dots='●'.repeat(tgt.matchScore)+'○'.repeat(5-tgt.matchScore);
+    const isOpen=openTradeTargetId===tgt.id;
+
+    const tradeTypes=getTradeTypes(team);
+    const tradeTypesHtml=tradeTypes.map(t=>tradeTypeTag(t)).join(' ');
+
+    html+=`<div class="card" id="tgt-card-${tgt.id}">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:8px">
+        <div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700">${team.name}</div>
+          <div style="font-family:'DM Mono',monospace;font-size:11px;color:#555;margin-top:2px">${dots} match · 2027 cap: ${cap}</div>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center">${windowTag(team.window)} ${fragTag(team.overall.frag)}
+          <button class="btn btn-sm ${isOpen?'btn-primary':'btn-secondary'}" onclick="toggleTradePanel('${tgt.id}')">${isOpen?'▲ Close':'▼ View Rosters'}</button>
+        </div>
+      </div>
+      <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px">${tradeTypesHtml}</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:10px">
+        <div><div class="section-label" style="margin-bottom:4px">We offer</div><div class="trade-need">${tgt.weOffer.map(n=>`<span class="surplus-pill">${n}</span>`).join('')}</div></div>
+        <div><div class="section-label" style="margin-bottom:4px">We target</div><div class="trade-need">${tgt.weGet.map(n=>`<span class="need-pill">${n}</span>`).join('')}</div></div>
+      </div>
+      <div style="font-size:12px;color:#777;line-height:1.55">${tgt.rationale}</div>
+      <div class="divider"></div>
+      <div class="section-label" style="margin-bottom:4px">Their 2027 picks</div>
+      <div class="picks-grid">${team.picks2027.map(p=>{const r=parseInt(p.replace('R',''));return`<span class="pick-pill ${r===1?'r1':r===2?'r2':'r3'}">${p}</span>`}).join('')}</div>
+      <div id="trade-panel-${tgt.id}">${isOpen?buildTradePanel(tgt,rhinos,team):''}</div>
+    </div>`;
+  });
+
+  c.innerHTML=html;
+}
+
+function toggleTradePanel(tgtId){
+  if(openTradeTargetId===tgtId){
+    openTradeTargetId=null;
+  } else {
+    openTradeTargetId=tgtId;
+    tradeCalcRhinosSide=[];
+    tradeCalcTargetSide=[];
+  }
+  renderTrade(g('mainContent'));
+}
+
+function buildTradePanel(tgt,rhinos,team){
+  const rhinosPlayers=getAllPlayers(rhinos);
+  const targetPlayersList=getAllPlayers(team);
+  // Rhinos: highlight positions we should offer from
+  const offerRoles=new Set((tgt.offerRoles||[]).map(r=>r.toUpperCase()));
+  // Target: highlight positions + specific players to target
+  const highlightRoles=new Set(tgt.targetRoles.map(r=>r.toUpperCase()));
+  const highlightNames=new Set(tgt.targetPlayers.map(n=>n.toLowerCase()));
+
+  const rhinosHtml=buildRosterSideForTarget(rhinosPlayers,rhinos,'RHINOS — sending',offerRoles,new Set(),'rhinos',tgt.offerPicks,rhinos.picks2027);
+  const targetHtml=buildRosterSideForTarget(targetPlayersList,team,'TARGET — receiving',highlightRoles,highlightNames,'target',true,team.picks2027);
+  const calcHtml=buildTradeCalc(rhinos,team);
+  return`<div class="roster-compare-panel">
+    <div style="background:#111;padding:8px 14px;border-bottom:1px solid #222;display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      <span style="font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:600;color:#ccc;letter-spacing:.06em;text-transform:uppercase">Roster Comparison</span>
+      <span style="font-size:11px;color:#555">· Click any player or pick to add to the trade calculator</span>
+      <div style="display:flex;gap:10px;margin-left:auto;flex-wrap:wrap">
+        <span style="font-size:10px;color:#555;display:flex;align-items:center;gap:4px"><span style="width:8px;height:8px;display:inline-block;background:#0a2a1a;border-left:2px solid #1D9E75"></span>Highlighted role</span>
+        <span style="font-size:10px;color:#555;display:flex;align-items:center;gap:4px"><span style="width:8px;height:8px;display:inline-block;background:#1e2a06;border-left:2px solid #d4950a"></span>Target player</span>
+      </div>
+    </div>
+    <div class="roster-compare-grid">${rhinosHtml}${targetHtml}</div>
+  </div>
+  ${calcHtml}`;
+}
+
+function getAllPlayers(team){
+  const result=[];
+  ['qb','rb','wr','te'].forEach(pos=>{
+    const p=team[pos];
+    (p.starters||[]).forEach(name=>result.push({name,pos:pos.toUpperCase(),starter:true}));
+    (p.depth||[]).forEach(name=>result.push({name,pos:pos.toUpperCase(),starter:false}));
+  });
+  return result;
+}
+
+function buildRosterSideForTarget(players,team,label,highlightRoles,highlightNames,side,showPicks,picks){
+  const header=`<div class="roster-col-header ${team.us?'tname us':''}" style="font-size:14px">${team.us?'★ ':''}${team.name}</div>
+  <div style="font-size:10px;color:#555;margin-bottom:8px;font-family:'DM Mono',monospace">${label}</div>`;
+  const rows=players.map(p=>{
+    const nameClean=p.name.split(' (')[0];
+    const nfl=p.name.match(/\(([^)]+)\)/)?.[1]||'';
+    const isRoleHl=highlightRoles.has(p.pos);
+    const isPlayerHl=highlightNames.has(nameClean.toLowerCase());
+    let rowClass='roster-player-row';
+    if(isPlayerHl)rowClass+=' highlight-player';
+    else if(isRoleHl)rowClass+=' highlight-role';
+    const ktcVal=getKTCValue(p.name);
+    const ktcHtml=ktcVal?`<span class="ktc-badge">${ktcVal}</span>`:'';
+    const safeName=nameClean.replace(/'/g,"\\'").replace(/"/g,'&quot;');
+    return`<div class="${rowClass}" onclick="addToTradeCalc('${safeName}','${side}','${p.pos}')">
+      <span class="pos-badge pos-${p.pos}" style="font-size:9px;padding:1px 4px">${p.pos}</span>
+      <span class="rp-name ${p.starter?'starter':''}">${nameClean}</span>
+      <span class="rp-nfl">${nfl}</span>
+      ${ktcHtml}
+    </div>`;
+  }).join('');
+
+  // Draft picks section
+  let picksHtml='';
+  if(showPicks&&picks&&picks.length>0){
+    const pickRows=picks.map(p=>{
+      const r=parseInt(p.replace('R',''));
+      // Picks have approximate KTC values: R1~3500, R2~1800, R3~800, R4~400
+      const pickKtcApprox=r===1?3500:r===2?1800:r===3?800:r<=5?400:150;
+      const pickLabel=`2027 ${p}`;
+      const safePickName=pickLabel.replace(/'/g,"\\'");
+      return`<div class="roster-player-row highlight-role" onclick="addToTradeCalc('${safePickName}','${side}','PICK')">
+        <span class="pick-pill ${r===1?'r1':r===2?'r2':r===3?'r3':''}" style="font-size:9px;cursor:pointer">${p}</span>
+        <span class="rp-name" style="font-size:11px">2027 ${p} Pick</span>
+        <span class="ktc-badge">~${pickKtcApprox}</span>
+      </div>`;
+    }).join('');
+    picksHtml=`<div style="margin-top:8px;padding-top:8px;border-top:1px solid #1e1e1e">
+      <div style="font-size:10px;color:#555;font-family:'DM Mono',monospace;margin-bottom:4px;text-transform:uppercase;letter-spacing:.08em">2027 Draft Picks</div>
+      ${pickRows}
+    </div>`;
+  }
+
+  return`<div class="roster-team-col">${header}${rows}${picksHtml}</div>`;
+}
+
+
+function buildTradeCalc(rhinos,team){
+  function itemValue(item){
+    if(item.pos==='PICK'){
+      const r=parseInt((item.name.match(/R(\d)/)||[0,4])[1]);
+      return r===1?3500:r===2?1800:r===3?800:r<=5?400:150;
+    }
+    return getKTCValue(item.name)||0;
+  }
+  const totalRhinos=tradeCalcRhinosSide.reduce((s,p)=>s+itemValue(p),0);
+  const totalTarget=tradeCalcTargetSide.reduce((s,p)=>s+itemValue(p),0);
+  const diff=totalRhinos-totalTarget;
+  const hasValues=totalRhinos>0||totalTarget>0;
+  const verdictClass=!hasValues?'even':Math.abs(diff)<=300?'even':diff<0?'win':'loss';
+  const verdictText=!hasValues?'—':Math.abs(diff)<=300?'FAIR TRADE':diff<0?'WE WIN':'WE OVERPAY';
+
+  const chipList=(arr,side)=>arr.length===0
+    ?`<div style="font-size:11px;color:#444;font-style:italic;padding:8px 0">Click players or picks above to add\u2026</div>`
+    :arr.map(p=>{
+      const val=itemValue(p);
+      const safeName=p.name.replace(/'/g,"\\'").replace(/"/g,'&quot;');
+      const isPick=p.pos==='PICK';
+      const r=isPick?parseInt((p.name.match(/R(\d)/)||[0,4])[1]):0;
+      return`<div class="trade-player-chip">
+        ${isPick
+          ?`<span class="pick-pill ${r===1?'r1':r===2?'r2':r===3?'r3':''}" style="font-size:9px">${p.name.replace('2027 ','')}</span>`
+          :`<span class="pos-badge pos-${p.pos}" style="font-size:9px;padding:1px 4px">${p.pos}</span>`
+        }
+        <span style="flex:1;font-size:12px">${p.name}</span>
+        <span class="chip-val ${val?'':'no-val'}">${val?val+(isPick?' <span style="font-size:8px;color:#555">~</span>':''):'—'}</span>
+        <button onclick="removeFromTradeCalc('${safeName}','${side}')" style="background:none;border:none;color:#444;cursor:pointer;font-size:12px;padding:0 2px;line-height:1">\u2715</button>
+      </div>`;
+    }).join('');
+
+  return`<div class="trade-calc-panel" style="margin-top:10px">
+    <div class="trade-calc-header">
+      <span style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#ccc">Trade Calculator</span>
+      <div style="display:flex;gap:8px;align-items:center">
+        <span style="font-size:10px;color:#444">KTC: ${ktcLoaded?`<span style="color:#1D9E75">\u2713 ${ktcAgeLabel()||'loaded'}</span>`:'<span style="color:#555">unavailable</span>'} \xb7 Pick values are approximate</span>
+        <button class="btn btn-sm btn-secondary" onclick="clearTradeCalc()">Clear</button>
+      </div>
+    </div>
+    <div class="trade-calc-body">
+      <div class="trade-side">
+        <div class="trade-side-label">Rhinos send</div>
+        <div class="trade-drop-zone">${chipList(tradeCalcRhinosSide,'rhinos')}</div>
+        <div style="font-family:'DM Mono',monospace;font-size:11px;color:#888">Value: <span style="color:#e8e6e0;font-weight:700">${totalRhinos||'—'}</span></div>
+      </div>
+      <div class="trade-mid-col">
+        <div style="color:#333;font-size:14px;margin-bottom:8px">\u21c4</div>
+        <div class="trade-value-total" style="color:${verdictClass==='win'?'#1D9E75':verdictClass==='loss'?'#d06040':'#888'}">${hasValues?Math.abs(diff):'—'}</div>
+        <div style="font-size:9px;color:#444;margin-top:2px">${hasValues?(diff>0?'we overpay':diff<0?'we underpay':'even'):'diff'}</div>
+        <div class="trade-verdict ${verdictClass}" style="margin-top:8px;white-space:nowrap">${verdictText}</div>
+      </div>
+      <div class="trade-side">
+        <div class="trade-side-label">Rhinos receive</div>
+        <div class="trade-drop-zone">${chipList(tradeCalcTargetSide,'target')}</div>
+        <div style="font-family:'DM Mono',monospace;font-size:11px;color:#888">Value: <span style="color:#e8e6e0;font-weight:700">${totalTarget||'—'}</span></div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function addToTradeCalc(name,side,pos){
+  const arr=side==='rhinos'?tradeCalcRhinosSide:tradeCalcTargetSide;
+  if(arr.find(p=>p.name===name))return;
+  arr.push({name,pos});
+  refreshTradeCalc();
+}
+
+function removeFromTradeCalc(name,side){
+  if(side==='rhinos')tradeCalcRhinosSide=tradeCalcRhinosSide.filter(p=>p.name!==name);
+  else tradeCalcTargetSide=tradeCalcTargetSide.filter(p=>p.name!==name);
+  refreshTradeCalc();
+}
+
+function clearTradeCalc(){
+  tradeCalcRhinosSide=[];
+  tradeCalcTargetSide=[];
+  refreshTradeCalc();
+}
+
+function refreshTradeCalc(){
+  if(!openTradeTargetId)return;
+  const tgt=TRADE_TARGETS.find(t=>t.id===openTradeTargetId);
+  if(!tgt)return;
+  const rhinos=TEAMS.find(t=>t.us);
+  const team=TEAMS.find(t=>t.id===tgt.id);
+  const calcEl=document.querySelector(`#tgt-card-${tgt.id} .trade-calc-panel`);
+  if(calcEl){
+    const temp=document.createElement('div');
+    temp.innerHTML=buildTradeCalc(rhinos,team);
+    calcEl.replaceWith(temp.firstChild);
+  }
+}
+
+// ── POWER RANKINGS ────────────────────────────────────────────────────────────
+const PRESEASON_RANKS=[
+  {id:'wheel',rationale:'Most complete roster in the league. Mahomes/Love at QB/SF with no real weaknesses anywhere. Best bet for consistent weekly production start to finish.'},
+  {id:'rhinos',rationale:'Dominant at every pass-catching position. The antifragile RB room is the bet — if 1-2 backs emerge mid-season this becomes the #1 team. Maye Year 2 leap is the real wildcard upside.'},
+  {id:'steelhawks',rationale:'Jackson/Daniels is the most terrifying QB/SF combo in the league. Fewer ways to lose a week than almost anyone. Thin at 16 rostered but the starters are elite.'},
+  {id:'third',rationale:'Allen/Hurts raises the floor every single week. Everything else is average-to-weak, but that floor is real. A QB injury is catastrophic — no real insurance.'},
+  {id:'warranted',rationale:'Gibbs and Tyler Warren are difference-makers. Herbert is a solid weekly QB. WR room is the weakness — if they can hide it this team competes for a title.'},
+  {id:'depot',rationale:'Burrow/Lawrence underrated as a QB pairing. AJ Brown and DJ Moore are S-tier if healthy. Taylor/Etienne fragility is the only real concern.'},
+  {id:'bookends',rationale:'Elite TE room and strong WRs make the flex situation luxurious. Prescott/Tua limits the ceiling every week in superflex. A QB upgrade makes this top-2.'},
+  {id:'duhhh',rationale:'Historically deep RB room completely wasted by Stafford/Mayfield at QB. Wins by running up the score and hoping the QB deficit doesn\'t matter. Very exploitable.'},
+  {id:'greeneggs',rationale:'Chase/Nacua/Nabers is an S-tier WR trio giving points to a C-tier QB every week. If Young or Beck breaks out this becomes dangerous. Until then, talent wasted.'},
+  {id:'meatshack',rationale:'Bowers and G. Wilson/Harrison are elite. Rodgers at SF drags the floor down catastrophically every week. Caleb Williams Year 2 is the entire season bet.'},
+  {id:'delocho',rationale:'Antifragile RB room has real mid-season upside. No elite position group at roster construction. Purdy/Ward at QB is serviceable. More upside than the floor suggests.'},
+  {id:'saltpond',rationale:'CMC/Jeanty is the best RB starting duo in the league but the window is closing — CMC age 29, Kittle 32. Thin depth and weak QB doom them to inconsistency.'}
+];
+
+function renderPower(c){
+  const isMid=powerMode==='midseason';
+  let html=`
+  <div class="filter-row" style="justify-content:space-between">
+    <div class="toggle-group">
+      <button class="toggle-btn ${!isMid?'active':''}" onclick="powerMode='preseason';renderPower(g('mainContent'))">Pre-Season</button>
+      <button class="toggle-btn ${isMid?'active':''}" onclick="powerMode='midseason';renderPower(g('mainContent'))">Mid-Season</button>
+    </div>
+    ${isMid?'<button class="btn btn-secondary btn-sm" onclick="openModal(\'modalImport\')">Import Data</button>':'<div style="font-size:12px;color:#555">Drag to reorder · pre-season analytical ranking</div>'}
+  </div>`;
+
+  if(isMid&&!statsData){
+    html+=`<div class="card" style="text-align:center;padding:40px 20px">
+      <div style="font-size:14px;color:#666;margin-bottom:12px">No standings data imported yet.</div>
+      <button class="btn btn-primary" onclick="openModal('modalImport')">Import Data</button>
+      <div style="font-size:12px;color:#444;margin-top:10px;line-height:1.6">Use Full Import with your FFPC CSV to generate mid-season power rankings.</div>
+    </div>`;
+  } else {
+    const ranks=isMid&&statsData?getMidseasonRanks():powerRankings.map(id=>PRESEASON_RANKS.find(r=>r.id===id)||{id,rationale:''});
+    html+=`<div id="rankList">`;
+    ranks.forEach((r,i)=>{
+      const team=TEAMS.find(t=>t.id===r.id);
+      if(!team)return;
+      html+=`<div class="rank-item ${team.us?'us':''}" draggable="${!isMid}" id="rank-${r.id}" data-id="${r.id}"
+        ondragstart="dragStart(event)" ondragover="dragOver(event)" ondrop="drop(event)" ondragend="dragEnd(event)">
+        <div class="rank-num ${i<3?'top3':''}">${i+1}</div>
+        ${!isMid?'<div class="drag-handle">⋮⋮</div>':''}
+        <div style="flex:1">
+          <div class="rank-name">${team.us?'★ ':''}${team.name}
+            <span style="margin-left:8px">${gradeTag(team.overall.floor)}→${gradeTag(team.overall.ceil)}</span>
+            <span style="margin-left:6px">${windowTag(team.window)}</span>
+          </div>
+          <div class="rank-rationale">${isMid&&r.score?`Score: ${r.score.toFixed(1)} · ${r.rationale}`:(r.rationale||'')}</div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end">${fragTag(team.overall.frag)}</div>
+      </div>`;
+    });
+    html+=`</div>`;
+    if(!isMid)html+=`<div style="font-size:12px;color:#444;margin-top:8px;text-align:center">Drag rows to reorder pre-season rankings</div>`;
+  }
+  c.innerHTML=html;
+  if(!isMid)initDrag();
+}
+
+function getMidseasonRanks(){
+  if(!statsData)return[];
+  return [...statsData].sort((a,b)=>b.score-a.score).map(d=>{
+    const team=TEAMS.find(t=>t.name.toLowerCase().includes(d.name.toLowerCase().split(' ')[0])||d.name.toLowerCase().includes(t.name.toLowerCase().split(' ')[0]));
+    return{id:team?team.id:'',rationale:`Season: ${d.totalPts} pts`,score:d.score,...(PRESEASON_RANKS.find(r=>r.id===team?.id)||{})};
+  }).filter(r=>r.id);
+}
+
+function dragStart(e){dragSrc=e.currentTarget;e.currentTarget.classList.add('dragging')}
+function dragOver(e){e.preventDefault()}
+function dragEnd(e){e.currentTarget.classList.remove('dragging')}
+function drop(e){
+  e.preventDefault();
+  const target=e.currentTarget;
+  if(!dragSrc||dragSrc===target)return;
+  const list=g('rankList');
+  const items=[...list.children];
+  const srcIdx=items.indexOf(dragSrc);
+  const tgtIdx=items.indexOf(target);
+  if(srcIdx<tgtIdx)target.after(dragSrc);else target.before(dragSrc);
+  powerRankings=[...list.children].map(el=>el.dataset.id);
+}
+function initDrag(){}
+
+// ── AGE & DRAFT ───────────────────────────────────────────────────────────────
+function renderAge(c){
+  const ageRows=TEAMS.map(t=>({...t,avg:Math.round((t.age.QB+t.age.RB+t.age.WR+t.age.TE)/4)})).sort((a,b)=>a.avg-b.avg);
+
+  let html=`<div class="sub-header">Championship Windows & Age Profile</div>
+  <div style="overflow-x:auto;margin-bottom:16px">
+  <table class="overview-table"><thead><tr><th>Team</th><th>QB Age</th><th>RB Age</th><th>WR Age</th><th>TE Age</th><th>Avg</th><th>Window</th><th>Prime Concern</th></tr></thead><tbody>`;
+  ageRows.forEach(t=>{
+    const avgColor=t.avg<=25?'#1D9E75':t.avg<=28?'#4a9ede':t.avg<=30?'#d4950a':'#d06040';
+    html+=`<tr class="team-row ${t.us?'us':''}" style="cursor:default">
+      <td style="font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:14px">${t.us?'★ ':''}${t.name}</td>
+      <td>${t.age.QB} ${ageTag('QB',t.age.QB)}</td>
+      <td>${t.age.RB} ${ageTag('RB',t.age.RB)}</td>
+      <td>${t.age.WR} ${ageTag('WR',t.age.WR)}</td>
+      <td>${t.age.TE} ${ageTag('TE',t.age.TE)}</td>
+      <td><span style="font-family:'Barlow Condensed',sans-serif;font-size:17px;font-weight:700;color:${avgColor}">${t.avg}</span></td>
+      <td>${windowTag(t.window)}<div style="font-size:10px;color:#555;margin-top:4px;line-height:1.4;max-width:160px">${t.windowNote}</div></td>
+      <td>${t.primeConcern?'<span class="tag tag-warning">⚠ aging core</span>':'<span style="color:#333;font-size:12px">—</span>'}</td>
+    </tr>`;
+  });
+  html+=`</tbody></table></div>
+
+  <div class="divider"></div>
+  <div class="sub-header">2026 Rookie Draft — Rhinos #630 Strategy</div>`;
+
+  const recs=[
+    {pos:'RB',urgency:'high',pick:'1.6',title:'RB1 with week-1 role path',body:"The Rhinos' only glaring hole is proven RB production. With pick 1.6, target a rookie with an immediate backfield path. A year-1 contributor is the single most impactful move available. The entire 0-RB strategy hinges on converting one or two dart throws to real roles."},
+    {pos:'RB',urgency:'high',pick:'2.7',title:'Stack: second RB at 2.7',body:'Double down in the early rounds. A 2nd-round RB with upside paired with a 1st-round RB covers both the floor need and the upside need simultaneously.'},
+    {pos:'QB',urgency:'medium',pick:'3.6',title:'Monitor: QB3 upside play',body:'Drake Maye is the franchise cornerstone — no urgency here. But if a top dynasty QB prospect falls into round 3, stacking a 3rd QB extends the window further. Not a need, but elite value if available.'},
+    {pos:'WR',urgency:'low',pick:'4.7+',title:'WR depth: only for elite value',body:'The WR room is a strength, not a need. Only target WRs in rounds 4+ if the floor, trajectory, and situation are genuinely elite. A WR taken here becomes trade currency if he develops — the Noel-to-proven-RB pipeline.'},
+    {pos:'TE',urgency:'low',pick:'5.5+',title:'TE: long-term only',body:'Fannin is locked at TE1, Likely is the flex/TE2. Only invest here if a Brock Bowers-tier dynasty prospect is available deep. Otherwise skip — the position is covered for the next 3-4 years.'}
+  ];
+
+  recs.forEach(r=>{
+    const urgColor=r.urgency==='high'?'#d06040':r.urgency==='medium'?'#d4950a':'#1D9E75';
+    const urgLabel=r.urgency==='high'?'HIGH PRIORITY':r.urgency==='medium'?'MONITOR':'VALUE ONLY';
+    html+=`<div class="card" style="margin-bottom:8px">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:8px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="pos-badge pos-${r.pos}">${r.pos}</span>
+          <span style="font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:600">${r.title}</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="pick-pill ${r.urgency==='high'?'r1':r.urgency==='medium'?'r2':'r3'}">${r.pick}</span>
+          <span style="font-family:'DM Mono',monospace;font-size:10px;color:${urgColor}">${urgLabel}</span>
+        </div>
+      </div>
+      <div style="font-size:12px;color:#777;line-height:1.55">${r.body}</div>
+    </div>`;
+  });
+
+  const rhinos=TEAMS.find(t=>t.us);
+  html+=`<div class="divider"></div><div class="sub-header">2027 Draft Picks Held</div>
+  <div class="picks-grid">${rhinos.picks2027.map(p=>{const r=parseInt(p.replace('R',''));return`<span class="pick-pill ${r===1?'r1':r===2?'r2':r===3?'r3':''}">${p}</span>`}).join('')}</div>`;
+
+  c.innerHTML=html;
+}
+
+// ── ROSTER ────────────────────────────────────────────────────────────────────
+function renderRoster(c){
+  const team=TEAMS.find(t=>t.id===rosterTeam);
+  const teamOpts=TEAMS.map(t=>`<option value="${t.id}" ${t.id===rosterTeam?'selected':''}>${t.us?'★ ':''}${t.name}</option>`).join('');
+  const allPlayers=[
+    ...team.qb.starters.map(p=>({name:p.split(' (')[0],nfl:p.match(/\(([^)]+)\)/)?.[1]||'',pos:'QB',role:'starter'})),
+    ...team.qb.depth.map(p=>({name:p.split(' (')[0],nfl:p.match(/\(([^)]+)\)/)?.[1]||'',pos:'QB',role:'depth'})),
+    ...team.rb.starters.map(p=>({name:p.split(' (')[0],nfl:p.match(/\(([^)]+)\)/)?.[1]||'',pos:'RB',role:'starter'})),
+    ...team.rb.depth.map(p=>({name:p.split(' (')[0],nfl:p.match(/\(([^)]+)\)/)?.[1]||'',pos:'RB',role:'depth'})),
+    ...team.wr.starters.map(p=>({name:p.split(' (')[0],nfl:p.match(/\(([^)]+)\)/)?.[1]||'',pos:'WR',role:'starter'})),
+    ...team.wr.depth.map(p=>({name:p.split(' (')[0],nfl:p.match(/\(([^)]+)\)/)?.[1]||'',pos:'WR',role:'depth'})),
+    ...team.te.starters.map(p=>({name:p.split(' (')[0],nfl:p.match(/\(([^)]+)\)/)?.[1]||'',pos:'TE',role:'starter'})),
+    ...team.te.depth.map(p=>({name:p.split(' (')[0],nfl:p.match(/\(([^)]+)\)/)?.[1]||'',pos:'TE',role:'depth'}))
+  ];
+  const filtered=rosterFilter==='ALL'?allPlayers:allPlayers.filter(p=>p.pos===rosterFilter);
+  const cap=pickCapScore(team.picks2027);
+
+  let html=`
+  <div class="filter-row" style="justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px">
+    <select onchange="rosterTeam=this.value;renderRoster(g('mainContent'))" style="max-width:280px">${teamOpts}</select>
+    <div class="filter-row" style="margin:0;gap:6px">
+      ${['ALL','QB','RB','WR','TE'].map(f=>`<button class="filter-btn ${rosterFilter===f?'active':''}" onclick="rosterFilter='${f}';renderRoster(g('mainContent'))">${f}</button>`).join('')}
+    </div>
+  </div>
+  <div class="stat-grid">
+    <div class="stat-card"><div class="stat-val">${allPlayers.filter(p=>p.pos==='QB').length}</div><div class="stat-label">QBs</div></div>
+    <div class="stat-card"><div class="stat-val amber">${allPlayers.filter(p=>p.pos==='RB').length}</div><div class="stat-label">RBs</div></div>
+    <div class="stat-card"><div class="stat-val blue">${allPlayers.filter(p=>p.pos==='WR').length}</div><div class="stat-label">WRs</div></div>
+    <div class="stat-card"><div class="stat-val">${allPlayers.filter(p=>p.pos==='TE').length}</div><div class="stat-label">TEs</div></div>
+    <div class="stat-card"><div class="stat-val" style="font-size:20px">${cap}</div><div class="stat-label">2027 Pick Capital</div></div>
+  </div>
+  <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:12px">
+    <div><div class="section-label" style="margin-bottom:4px">Needs</div><div class="trade-need">${team.needs.map(n=>`<span class="need-pill">${n}</span>`).join('')}</div></div>
+    <div><div class="section-label" style="margin-bottom:4px">Surplus</div><div class="trade-need">${team.surplus.map(n=>`<span class="surplus-pill">${n}</span>`).join('')}</div></div>
+  </div>
+  <div class="card" style="padding:0;overflow:hidden">
+    <div style="overflow-y:auto;max-height:380px">`;
+
+  ['QB','RB','WR','TE'].forEach(pos=>{
+    if(rosterFilter!=='ALL'&&rosterFilter!==pos)return;
+    const starters=filtered.filter(p=>p.pos===pos&&p.role==='starter');
+    const depth=filtered.filter(p=>p.pos===pos&&p.role==='depth');
+    if(!starters.length&&!depth.length)return;
+    html+=`<div style="padding:8px 12px;background:#111;border-bottom:1px solid #1e1e1e;font-family:'Barlow Condensed',sans-serif;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#444">${pos}</div>`;
+    starters.forEach(p=>{html+=`<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid #181818"><span class="pos-badge pos-${p.pos}">${p.pos}</span><span style="flex:1;font-weight:500;font-size:13px">${p.name}</span><span style="font-family:'DM Mono',monospace;font-size:10px;color:#555">${p.nfl}</span><span style="font-family:'DM Mono',monospace;font-size:10px;color:#1D9E75">STARTER</span></div>`;});
+    depth.forEach(p=>{html+=`<div style="display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid #181818;opacity:.7"><span class="pos-badge pos-${p.pos}">${p.pos}</span><span style="flex:1;font-size:13px;color:#aaa">${p.name}</span><span style="font-family:'DM Mono',monospace;font-size:10px;color:#555">${p.nfl}</span><span style="font-family:'DM Mono',monospace;font-size:10px;color:#444">DEPTH</span></div>`;});
+  });
+
+  html+=`</div></div>
+  <div class="divider"></div>
+  <div class="card ${team.us?'us':''}">
+    <div class="grade-row" style="margin-bottom:10px">
+      <div class="grade-cell"><div class="grade-cell-label">Floor</div>${gradeTag(team.overall.floor)}</div>
+      <div class="grade-cell"><div class="grade-cell-label">Ceiling</div>${gradeTag(team.overall.ceil)}</div>
+      <div class="grade-cell"><div class="grade-cell-label">Delta</div>${deltaTag(team.overall.delta)}</div>
+      <div class="grade-cell"><div class="grade-cell-label">Profile</div>${fragTag(team.overall.frag)}</div>
+      <div class="grade-cell"><div class="grade-cell-label">Window</div>${windowTag(team.window)}</div>
+    </div>
+    <div class="philosophy">${team.philosophy}</div>
+  </div>
+  <div class="divider"></div>
+  <div class="sub-header">2027 Draft Picks</div>
+  <div class="picks-grid">${team.picks2027.map(p=>{const r=parseInt(p.replace('R',''));return`<span class="pick-pill ${r===1?'r1':r===2?'r2':r===3?'r3':''}">${p}</span>`}).join('')}</div>`;
+
+  c.innerHTML=html;
+}
+
+// ── RE-ASSESS COPY PROMPT ─────────────────────────────────────────────────────
+function copyReassessPrompt(){
+  const weekContext = currentWeek > 0
+    ? `The current week is ${currentWeek}. Assess floor grades based on the current state of each roster as of week ${currentWeek} — not week 1 projections. Account for players who have emerged, been injured, or lost roles since the season started. A player on IR or with a reduced role should not be treated as a starter.`
+    : `This is preseason. Assess floor grades based on projected week 1 depth charts, training camp information, and current roster construction.`;
+
+  const rosterSummary=TEAMS.map(t=>`${t.name} (id:${t.id}): QB=${t.qb.starters.concat(t.qb.depth).join(', ')} | RB=${t.rb.starters.concat(t.rb.depth).join(', ')} | WR=${t.wr.starters.concat(t.wr.depth).join(', ')} | TE=${t.te.starters.concat(t.te.depth).join(', ')}`).join('\n');
+
+  const prompt=`You are a dynasty fantasy football analyst. Evaluate these 12 rosters for a dynasty superflex TE-premium league.
+
+LEAGUE FORMAT: 12 teams · 1 QB · 1 Superflex (QB/RB/WR/TE) · 2 RB · 3 WR · 2 Flex (WR/RB/TE) · 1 TE · FFPC TE-premium scoring. Starters always fill positional slots first before flex slots.
+
+EVALUATION FRAMEWORK:
+- Use dynasty context only — player age, trajectory, and long-term value matter heavily
+- Superflex format means QB value is elevated; a weak QB/SF combination is a significant weekly handicap
+- TE premium scoring increases TE value, especially for receiving TEs
+- Floor grades = current realistic weekly production for the position group
+- Ceiling grades = realistic best case if at least one player hits their upside (not all players)
+- Probability = likelihood that AT LEAST ONE player in the group reaches ceiling (not all)
+- Fragility: fragile = strong starters, little depth; robust = strong starters with real depth; antifragile = depth backs/players positioned to inherit workload from other teams' injuries, gets stronger as season progresses
+- Championship window: open = contending now; opening = 1-2 years away; retool = need to trade aging assets for youth; rebuild = starting over
+- Prime concern = true if a significant portion of key players are past or near the end of their prime
+
+${weekContext}
+
+CURRENT ROSTERS:
+${rosterSummary}
+
+Return ONLY a valid JSON array with no markdown, no explanation, no preamble. Use this exact structure:
+[{"id":"teamid","qbFloor":"B","qbCeil":"S","qbProb":"High","qbFrag":"robust","rbFloor":"C","rbCeil":"A","rbProb":"High","rbFrag":"antifragile","wrFloor":"S","wrCeil":"S","wrProb":"High","wrFrag":"robust","teFloor":"A","teCeil":"S","teProb":"Medium","teFrag":"robust","flexFloor":"A","flexCeil":"S","flexProb":"High","flexFrag":"antifragile","flexNote":"WR/TE overflow driven","flexDepthFloor":"A","flexDepthCeil":"S","flexDepthFrag":"antifragile","flexDepthNote":"RB depth inherits league injuries","overallFloor":"A","overallCeil":"S","overallDelta":"moderate","overallFrag":"antifragile","window":"open","windowNote":"Brief note under 15 words","primeConcern":false,"philosophy":"3-4 sentence philosophy covering construction strategy, strengths, vulnerabilities, and fragility profile","needs":["RB proven"],"surplus":["WR depth","Draft picks"]}]
+
+Grade scale: S=Elite, A=Strong, B=Average, C=Weak
+Fragility: fragile, robust, antifragile
+Probability: Low, Medium, High
+Delta: minimal, moderate, high, extreme
+Window: open, opening, retool, rebuild
+Team IDs: rhinos, bookends, wheel, saltpond, steelhawks, third, delocho, meatshack, greeneggs, duhhh, warranted, depot
+
+Return ONLY the JSON array.`;
+
+  const btn=document.querySelector('.btn-copy');
+  const orig=btn.textContent;
+  const flashSuccess=()=>{
+    btn.textContent='Copied!';
+    btn.style.background='#0a3d28';
+    btn.style.borderColor='#1D9E75';
+    btn.style.color='#1D9E75';
+    setTimeout(()=>{btn.textContent=orig;btn.style.background='';btn.style.borderColor='';btn.style.color='';},2000);
+  };
+  // Try modern clipboard API first, fall back to execCommand for local files
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(prompt).then(flashSuccess).catch(()=>{
+      const ta=document.createElement('textarea');
+      ta.value=prompt;ta.style.position='fixed';ta.style.opacity='0';
+      document.body.appendChild(ta);ta.focus();ta.select();
+      try{document.execCommand('copy');flashSuccess();}catch(e){alert('Copy failed — please copy manually.');}
+      document.body.removeChild(ta);
+    });
+  } else {
+    const ta=document.createElement('textarea');
+    ta.value=prompt;ta.style.position='fixed';ta.style.opacity='0';
+    document.body.appendChild(ta);ta.focus();ta.select();
+    try{document.execCommand('copy');flashSuccess();}catch(e){alert('Copy failed — please copy manually.');}
+    document.body.removeChild(ta);
+  }
+}
+
+// ── IMPORT RESULTS ────────────────────────────────────────────────────────────
+function processImportResults(){
+  const raw=g('resultsImportText').value.trim();
+  if(!raw){g('resultsImportStatus').textContent='Please paste JSON results.';return;}
+  try{
+    const text=raw.replace(/```json|```/g,'').trim();
+    const results=JSON.parse(text);
+    results.forEach(r=>{
+      const team=TEAMS.find(t=>t.id===r.id);
+      if(!team)return;
+      if(r.qbFloor)team.qb.floor=r.qbFloor;
+      if(r.qbCeil)team.qb.ceil=r.qbCeil;
+      if(r.qbProb)team.qb.prob=r.qbProb;
+      if(r.qbFrag)team.qb.frag=r.qbFrag;
+      if(r.rbFloor)team.rb.floor=r.rbFloor;
+      if(r.rbCeil)team.rb.ceil=r.rbCeil;
+      if(r.rbProb)team.rb.prob=r.rbProb;
+      if(r.rbFrag)team.rb.frag=r.rbFrag;
+      if(r.wrFloor)team.wr.floor=r.wrFloor;
+      if(r.wrCeil)team.wr.ceil=r.wrCeil;
+      if(r.wrProb)team.wr.prob=r.wrProb;
+      if(r.wrFrag)team.wr.frag=r.wrFrag;
+      if(r.teFloor)team.te.floor=r.teFloor;
+      if(r.teCeil)team.te.ceil=r.teCeil;
+      if(r.teProb)team.te.prob=r.teProb;
+      if(r.teFrag)team.te.frag=r.teFrag;
+      if(r.flexFloor)team.flex.floor=r.flexFloor;
+      if(r.flexCeil)team.flex.ceil=r.flexCeil;
+      if(r.flexProb)team.flex.prob=r.flexProb;
+      if(r.flexFrag)team.flex.frag=r.flexFrag;
+      if(r.flexNote)team.flex.note=r.flexNote;
+      if(r.flexDepthFloor)team.flexDepth.floor=r.flexDepthFloor;
+      if(r.flexDepthCeil)team.flexDepth.ceil=r.flexDepthCeil;
+      if(r.flexDepthFrag)team.flexDepth.frag=r.flexDepthFrag;
+      if(r.flexDepthNote)team.flexDepth.note=r.flexDepthNote;
+      if(r.overallFloor)team.overall.floor=r.overallFloor;
+      if(r.overallCeil)team.overall.ceil=r.overallCeil;
+      if(r.overallDelta)team.overall.delta=r.overallDelta;
+      if(r.overallFrag)team.overall.frag=r.overallFrag;
+      if(r.window)team.window=r.window;
+      if(r.windowNote)team.windowNote=r.windowNote;
+      if(typeof r.primeConcern==='boolean')team.primeConcern=r.primeConcern;
+      if(r.philosophy)team.philosophy=r.philosophy;
+      if(r.needs)team.needs=r.needs;
+      if(r.surplus)team.surplus=r.surplus;
+    });
+    g('resultsImportStatus').innerHTML=`<span style="color:#1D9E75">Updated ${results.length} teams successfully.</span>`;
+    setTimeout(()=>{closeModal('modalImportResults');renderOverview(g('mainContent'));},1200);
+  }catch(err){
+    g('resultsImportStatus').innerHTML=`<span style="color:#d06040">Parse error: ${err.message}. Make sure you paste the raw JSON.</span>`;
+  }
+}
+
+// ── CSV IMPORT ────────────────────────────────────────────────────────────────
+let csvFileData = null;
+
+function updateImportModeUI(){
+  const mode = document.querySelector('input[name="importMode"]:checked').value;
+  g('weekInputRow').style.display = mode === 'full' ? 'block' : 'none';
+  // highlight active mode label
+  g('modeRosterLabel').style.borderColor = mode === 'roster' ? '#1D9E75' : '#2a2a2a';
+  g('modeFullLabel').style.borderColor = mode === 'full' ? '#1D9E75' : '#2a2a2a';
+}
+
+function handleCsvFileSelect(input){
+  const file = input.files[0];
+  if(!file){ csvFileData = null; return; }
+  g('csvFileLabel').textContent = file.name;
+  const reader = new FileReader();
+  reader.onload = e => { csvFileData = e.target.result; };
+  reader.readAsText(file);
+}
+
+function parsePlayerName(raw){
+  // Format: "Last First NFL " e.g. "Lamb CeeDee DAL "
+  const trimmed = raw.trim();
+  const parts = trimmed.split(/\s+/);
+  if(parts.length < 3) return { displayName: trimmed, nfl: '' };
+  const nfl = parts[parts.length - 1];
+  const last = parts[0];
+  const first = parts.slice(1, parts.length - 1).join(' ');
+  return { displayName: `${first} ${last}`, nfl };
+}
+
+// Map FFPC team name strings to TEAMS ids
+const FFPC_TEAM_MAP = {
+  'Rhinos #630':              'rhinos',
+  'Buffalo Bookends 30':      'bookends',
+  'Dbls Rt. 92 A Wheel':     'wheel',
+  'Salt Pond Sun & Sand':     'saltpond',
+  'Steelhawks':               'steelhawks',
+  'The Third':                'third',
+  'DEL OCHO':                 'delocho',
+  'Meat Shack':               'meatshack',
+  'GreenEggs Chase Nacua Nabers': 'greeneggs',
+  'Duhhhh':                   'duhhh',
+  'When Warrented':           'warranted',
+  'Dynasty Depot':            'depot'
+};
+
+function processCsvImport(){
+  const statusEl = g('importStatus');
+  if(!csvFileData){ statusEl.innerHTML='<span style="color:#d06040">Please select a CSV file first.</span>'; return; }
+  const mode = document.querySelector('input[name="importMode"]:checked').value;
+
+  const lines = csvFileData.replace(/\r/g,'').split('\n');
+  if(!lines.length){ statusEl.innerHTML='<span style="color:#d06040">CSV appears empty.</span>'; return; }
+
+  // Parse header to find column indices
+  const header = lines[0].split(',').map(h=>h.trim().toUpperCase());
+  const iPlayer  = header.indexOf('PLAYER');
+  const iPos     = header.indexOf('POS');
+  const iNfl     = 2; // 3rd col is NFL team, embedded in PLAYER field — read from PLAYER parse
+  const iOwned   = header.indexOf('OWNED BY');
+  const iFP      = header.indexOf('FP');
+  const iPPG     = header.indexOf('PPG');
+  const iPROJ    = header.indexOf('PROJ');
+  const iOWN     = header.indexOf('OWN');
+
+  if(iPlayer === -1 || iPos === -1 || iOwned === -1){
+    statusEl.innerHTML='<span style="color:#d06040">Could not find required columns (PLAYER, POS, OWNED BY). Check the CSV format.</span>';
+    return;
+  }
+
+  // Build per-team roster from CSV — skip free agents (blank OWNED BY)
+  const rosterMap = {}; // teamId -> { QB:[], RB:[], WR:[], TE:[] }
+  const statsMap  = {}; // teamId -> { fp, ppg, proj, own }
+  let rowCount = 0;
+
+  for(let i = 1; i < lines.length; i++){
+    const line = lines[i].trim();
+    if(!line) continue;
+
+    // Handle quoted CSV fields
+    const cols = [];
+    let cur = '', inQ = false;
+    for(let c = 0; c < line.length; c++){
+      if(line[c]==='"'){ inQ=!inQ; }
+      else if(line[c]===',' && !inQ){ cols.push(cur); cur=''; }
+      else { cur+=line[c]; }
+    }
+    cols.push(cur);
+
+    const ownedBy = (cols[iOwned]||'').trim();
+    if(!ownedBy) continue; // skip free agents
+
+    const teamId = FFPC_TEAM_MAP[ownedBy];
+    if(!teamId) continue; // unknown team name
+
+    const { displayName, nfl } = parsePlayerName(cols[iPlayer]||'');
+    const pos = (cols[iPos]||'').trim();
+    const playerStr = `${displayName} (${nfl})`;
+
+    if(!rosterMap[teamId]) rosterMap[teamId] = { QB:[], RB:[], WR:[], TE:[], OTHER:[] };
+    const posGroup = ['QB','RB','WR','TE'].includes(pos) ? pos : 'OTHER';
+    rosterMap[teamId][posGroup].push(playerStr);
+
+    if(mode === 'full'){
+      if(!statsMap[teamId]) statsMap[teamId] = { fp:0, ppg:0, proj:0, own:0 };
+      statsMap[teamId].fp   += parseFloat(cols[iFP]  || 0);
+      statsMap[teamId].ppg  += parseFloat(cols[iPPG] || 0);
+      statsMap[teamId].proj += parseFloat(cols[iPROJ]|| 0);
+    }
+    rowCount++;
+  }
+
+  if(!rowCount){ statusEl.innerHTML='<span style="color:#d06040">No owned players found. Check the CSV and try again.</span>'; return; }
+
+  // Apply rosters to TEAMS data
+  // Strategy: replace starters (first N by position) and depth (remainder)
+  // Starters: QB=2, RB=2, WR=3, TE=1
+  const starterCounts = { QB:2, RB:2, WR:3, TE:1 };
+  let teamsUpdated = 0;
+
+  TEAMS.forEach(team => {
+    const r = rosterMap[team.id];
+    if(!r) return;
+    ['QB','RB','WR','TE'].forEach(pos => {
+      const players = r[pos] || [];
+      const n = starterCounts[pos];
+      team[pos.toLowerCase()].starters = players.slice(0, n);
+      team[pos.toLowerCase()].depth    = players.slice(n);
+    });
+    team.rostered = Object.values(r).flat().length;
+    teamsUpdated++;
+  });
+
+  // Full import: also update stats/power rankings data
+  if(mode === 'full'){
+    const week = parseInt(g('currentWeekInput').value) || 0;
+    currentWeek = week;
+    // Build statsData array for power rankings (team name + aggregated fp)
+    statsData = TEAMS.map(t => {
+      const s = statsMap[t.id] || {};
+      return { name: t.name, totalPts: s.fp||0, recent: s.fp||0, score: s.fp||0, wins:0, losses:0 };
+    }).filter(s => s.totalPts > 0);
+  }
+
+  const modeLabel = mode === 'full' ? 'rosters + stats' : 'rosters';
+  statusEl.innerHTML=`<span style="color:#1D9E75">Updated ${modeLabel} for ${teamsUpdated} teams (${rowCount} players). Use Copy Re-Assess Prompt to refresh grades.</span>`;
+  csvFileData = null;
+  g('csvFileInput').value = '';
+  g('csvFileLabel').textContent = 'Choose CSV file or click to browse';
+  setTimeout(()=>{ closeModal('modalImport'); renderOverview(g('mainContent')); }, 1800);
+}
+
+window.addEventListener('DOMContentLoaded',()=>{
+  renderOverview(g('mainContent'));
+  loadKTC();
+});
+</script>
+</body>
+</html>
