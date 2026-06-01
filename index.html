@@ -332,7 +332,7 @@ const TEAMS = [
     flex:{floor:'A',ceil:'S',prob:'High',frag:'antifragile',note:'WR/TE overflow driven'},
     flexDepth:{floor:'A',ceil:'S',prob:'High',frag:'antifragile',note:'RB depth inherits league injuries'},
     overall:{floor:'A',ceil:'S',delta:'moderate',frag:'antifragile'},
-    window:'open',windowNote:'Maye Year 2 + elite WR corps. Window opens fully when 1-2 RBs emerge.',primeConcern:false,
+    window:'open',windowNote:'Maye Year 3 + elite WR corps. Window opens fully when 1-2 RBs emerge.',primeConcern:false,
     philosophy:'The most deliberately constructed roster in the league. Dominant at every pass-catching position with a franchise QB in Maye, yet intentionally thin at RB week 1. The antifragile backfield is the core bet — as injuries accumulate this roster gets stronger. If two or three depth backs inherit roles mid-season, this becomes the best team in the league.',
     needs:['RB proven'],surplus:['WR depth','TE depth','Draft picks'],
     age:{QB:23,RB:23,WR:26,TE:24},
@@ -1670,7 +1670,7 @@ function refreshTradeCalc(){
 // ── POWER RANKINGS ────────────────────────────────────────────────────────────
 const PRESEASON_RANKS=[
   {id:'wheel',rationale:'Most complete roster in the league. Mahomes/Love at QB/SF with no real weaknesses anywhere. Best bet for consistent weekly production start to finish.'},
-  {id:'rhinos',rationale:'Dominant at every pass-catching position. The antifragile RB room is the bet — if 1-2 backs emerge mid-season this becomes the #1 team. Maye Year 2 leap is the real wildcard upside.'},
+  {id:'rhinos',rationale:'Dominant at every pass-catching position. The antifragile RB room is the bet — if 1-2 backs emerge mid-season this becomes the #1 team. Maye Year 3 leap is the real wildcard upside.'},
   {id:'steelhawks',rationale:'Jackson/Daniels is the most terrifying QB/SF combo in the league. Fewer ways to lose a week than almost anyone. Thin at 16 rostered but the starters are elite.'},
   {id:'third',rationale:'Allen/Hurts raises the floor every single week. Everything else is average-to-weak, but that floor is real. A QB injury is catastrophic — no real insurance.'},
   {id:'warranted',rationale:'Gibbs and Tyler Warren are difference-makers. Herbert is a solid weekly QB. WR room is the weakness — if they can hide it this team competes for a title.'},
@@ -1920,6 +1920,7 @@ CEILING GRADE FRAMEWORK:
 - A player with FC:1200 in a breakout situation (e.g., newly installed as TE1 on a pass-heavy offense) may have S-tier ceiling even though their market value is depressed
 - Weight SITUATION and OPPORTUNITY heavily for depth players when assessing ceiling — role clarity, target share potential, offensive scheme fit, and age trajectory matter more than current market value for ceiling grades
 - If you have access to recent news, beat reporter updates, or depth chart information suggesting a player is in a better position than their FC value implies, factor this in and note it in the philosophy
+- IMPORTANT: Never include FC bracket notation (e.g. FC:8785) in philosophy text or any output fields. FC values are for your internal context only — write philosophy in clean natural prose without referencing raw numbers
 
 EVALUATION FRAMEWORK:
 - Use dynasty context only — player age, trajectory, and long-term value matter heavily
