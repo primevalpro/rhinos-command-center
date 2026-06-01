@@ -512,9 +512,15 @@ let expandedRows=new Set();
 let ktcValues={};
 let ktcLoading=false;
 let ktcLoaded=false;
-let tradeCalcOpen=null; // team id of open trade panel
-let tradeRhinos=[];   // array of {name,value}
-let tradeTarget=[];   // array of {name,value}
+let tradeCalcOpen=null;
+let tradeRhinos=[];
+let tradeTarget=[];
+// Sleeper age data
+let sleeperBirthDates={}; // playerName.toLowerCase() -> birth_date "YYYY-MM-DD"
+let sleeperLoaded=false;
+const SLEEPER_STORAGE_KEY='rhinos_sleeper_ages';
+const SLEEPER_TS_KEY='rhinos_sleeper_timestamp';
+const SLEEPER_MAX_AGE_MS=30*24*60*60*1000; // 30 days — birth dates don't change
 
 // ── KTC VALUE LOADER ──────────────────────────────────────────────────────────
 const KTC_STORAGE_KEY='rhinos_ktc_values';
@@ -567,34 +573,54 @@ async function loadKTC(forceRefresh){
     updateKTCStatusBadge();
     return;
   }
-  // Load from cache as fallback even if stale, so we always have something
+  // Load stale cache as fallback so we always have something
   if(!ktcLoaded)loadKTCFromCache();
   ktcLoading=true;
   updateKTCStatusBadge();
-  try{
-    // Use corsproxy.io to bypass CORS on local file
-    const proxyUrl='https://corsproxy.io/?url='+encodeURIComponent('https://keeptradecut.com/api/players?format=2&posGroup=0');
-    const res=await fetch(proxyUrl);
-    if(!res.ok)throw new Error('fetch failed');
-    const data=await res.json();
-    // KTC API returns array of player objects with playerName and value fields
-    const newValues={};
-    if(Array.isArray(data)){
-      data.forEach(p=>{
+
+  // KTC endpoint candidates — try each in order until one works
+  const KTC_ENDPOINTS=[
+    // Direct API (works when hosted, no CORS issues on GitHub Pages)
+    'https://keeptradecut.com/api/players?format=2',
+    // Alternate direct path used by some community tools
+    'https://keeptradecut.com/api/players',
+    // corsproxy fallback
+    'https://corsproxy.io/?url='+encodeURIComponent('https://keeptradecut.com/api/players?format=2'),
+    // allorigins fallback — returns {contents: "json string"}
+    'https://api.allorigins.win/get?url='+encodeURIComponent('https://keeptradecut.com/api/players?format=2'),
+  ];
+
+  let loaded=false;
+  for(const url of KTC_ENDPOINTS){
+    try{
+      const res=await fetch(url,{signal:AbortSignal.timeout(8000)});
+      if(!res.ok)continue;
+      let data=await res.json();
+      // allorigins wraps in {contents: "..."}
+      if(data&&data.contents){
+        try{data=JSON.parse(data.contents);}catch(e){continue;}
+      }
+      const newValues={};
+      const arr=Array.isArray(data)?data:(data.players||data.data||[]);
+      arr.forEach(p=>{
         const name=(p.playerName||p.name||'').toLowerCase().trim();
-        const val=p.value??p.overallValue??null;
+        const val=p.value??p.overallValue??p.sf_value??null;
         if(name&&val!=null)newValues[name]=val;
       });
+      if(Object.keys(newValues).length>50){
+        Object.assign(ktcValues,newValues);
+        saveKTCToCache(newValues);
+        ktcLoaded=true;
+        loaded=true;
+        console.log(`KTC loaded from: ${url} (${Object.keys(newValues).length} players)`);
+        break;
+      }
+    }catch(e){
+      console.warn(`KTC endpoint failed (${url}):`,e.message);
     }
-    if(Object.keys(newValues).length>0){
-      Object.assign(ktcValues,newValues);
-      saveKTCToCache(newValues);
-      ktcLoaded=true;
-    }
-  }catch(e){
-    // CORS proxy failed — use cached values if available, show manual import option
-    console.warn('KTC fetch failed:',e.message);
   }
+
+  if(!loaded)console.warn('All KTC endpoints failed — using cache or manual import');
   ktcLoading=false;
   updateKTCStatusBadge();
 }
@@ -646,74 +672,91 @@ function getKTCValue(playerName){
   const clean=playerName.split(' (')[0].toLowerCase().trim();
   return ktcValues[clean]||0;
 }
-// ── PLAYER AGES ──────────────────────────────────────────────────────────────
-// Age lookup: player display name (without NFL team) -> age
-const PLAYER_AGES={
-  // Rhinos
-  'Drake Maye':23,'Malik Willis':25,'Michael Penix':25,
-  'Jacory Croskey-Merritt':22,'Zach Charbonnet':25,'Tyler Allgeier':25,'Braelon Allen':21,'Emmett Johnson':23,'Jordan James':22,'Kaelon Black':22,'Chris Brooks':25,
-  'CeeDee Lamb':26,'Nico Collins':26,'Rashee Rice':25,'DeVonta Smith':27,'Ladd McConkey':24,'Chris Bell':23,'Jaylin Noel':22,
-  'Harold Fannin':22,'Isaiah Likely':25,
-  // Bookends
-  'Dak Prescott':32,'Tua Tagovailoa':27,'Fernando Mendoza':24,
-  'TreVeyon Henderson':23,'Chuba Hubbard':26,'Rico Dowdle':27,'Kyle Monangai':24,'Isiah Pacheco':27,
-  'Amon-Ra St. Brown':25,'Emeka Egbuka':23,'Khalil Shakir':25,'Jayden Higgins':22,'Michael Wilson':25,'Isaac TeSlaa':23,'Elijah Sarratt':24,
-  'Trey McBride':26,'Dalton Kincaid':26,'Kenyon Sadiq':24,'David Njoku':29,
-  // Wheel
-  'Patrick Mahomes':30,'Jordan Love':27,'C.J. Stroud':24,
-  'Bucky Irving':24,'David Montgomery':28,'Tony Pollard':28,'Tyrone Tracy':25,'Woody Marks':25,'Tyjae Spears':23,'Mike Washington':24,
-  'Jaxon Smith-Njigba':23,'Rome Odunze':22,'Brian Thomas':23,'Jordan Addison':23,'Xavier Worthy':22,'Jordyn Tyson':22,
-  'T.J. Hockenson':28,'Brenton Strange':25,'Greg Dulcich':25,
-  // Salt Pond
-  'Jared Goff':31,'Kyler Murray':28,'Sam Darnold':28,
-  'Christian McCaffrey':29,'Ashton Jeanty':21,"D'Andre Swift":27,'Jadarian Price':22,'Alvin Kamara':30,'Kaleb Johnson':22,
-  'Drake London':24,'George Pickens':23,'Zay Flowers':24,'DK Metcalf':28,'Chris Godwin':29,'KC Concepcion':22,'Tre Tucker':25,
-  'George Kittle':32,'Juwan Johnson':29,
-  // Steelhawks
-  'Lamar Jackson':28,'Jayden Daniels':24,'Deshaun Watson':30,
-  'Jeremiyah Love':22,'Rhamondre Stevenson':26,'J.K. Dobbins':26,'Jonah Coleman':22,
-  'Brandon Aiyuk':27,'Travis Hunter':21,'Josh Downs':24,'Jalen McMillan':23,'Alec Pierce':25,'Tory Horton':24,
-  'Colston Loveland':22,'AJ Barner':24,'Jake Tonges':24,
-  // The Third
-  'Josh Allen':29,'Jalen Hurts':27,'Jaxson Dart':22,
-  'Josh Jacobs':27,'Kyren Williams':25,'Rachaad White':26,'Demond Claiborne':22,
-  'Luther Burden':21,'Courtland Sutton':30,'Jayden Reed':25,'Ricky Pearsall':23,'Rashid Shaheed':27,'Omar Cooper':23,'Jauan Jennings':29,'Denzel Boston':22,"Ja'Kobi Lane":22,
-  'Tucker Kraft':24,'Hunter Henry':31,
-  // DEL OCHO
-  'Brock Purdy':26,'Cam Ward':22,
-  'Bijan Robinson':23,'Omarion Hampton':22,'Breece Hall':24,'Nicholas Singleton':22,'Adam Randall':22,'Jonathon Brooks':23,
-  'Jameson Williams':24,'Mike Evans':32,'Michael Pittman':28,'Makai Lemon':22,"Wan'Dale Robinson":24,'Skyler Bell':23,
-  'Chig Okonkwo':26,'Terrance Ferguson':23,'Eli Raridon':23,'Justin Joly':23,
-  // Meat Shack
-  'Caleb Williams':23,'Aaron Rodgers':42,'Ty Simpson':23,
-  'Cam Skattebo':23,'RJ Harvey':23,'Blake Corum':24,'Devin Neal':22,
-  'Garrett Wilson':25,'Marvin Harrison':22,'Parker Washington':24,'Jalen Coker':23,'Antonio Williams':23,'Ted Hurst':24,
-  'Brock Bowers':22,'Oscar Delp':22,'Max Klare':23,
-  // GreenEggs
-  'Bryce Young':24,'Jacoby Brissett':32,'Carson Beck':23,
-  'Chase Brown':25,'Kenneth Walker':25,'Jordan Mason':26,'Chris Rodriguez':25,'Keaton Mitchell':24,'Kimani Vidal':24,
-  "Ja'Marr Chase":26,'Puka Nacua':24,'Malik Nabers':22,'Davante Adams':33,'Matthew Golden':22,'Stefon Diggs':32,'Jack Bech':22,
-  'Kyle Pitts':24,'Oronde Gadsden':24,'Cade Otton':26,
-  // Duhhh
-  'Matthew Stafford':37,'Baker Mayfield':30,'Daniel Jones':28,
-  'James Cook':25,"De'Von Achane":23,'Saquon Barkley':28,'Derrick Henry':31,'Quinshon Judkins':22,'Tank Bigsby':24,'Ray Davis':25,'Jaylen Wright':23,'Ollie Gordon':22,
-  'Chris Olave':25,'Tetairoa McMillan':21,'Tee Higgins':26,'Jaylen Waddle':27,'Christian Watson':26,'Zachariah Branch':21,
-  'Sam LaPorta':24,'Travis Kelce':36,'Mark Andrews':30,
-  // Warranted
-  'Justin Herbert':27,'Bo Nix':25,'Geno Smith':35,
-  'Jahmyr Gibbs':23,'Javonte Williams':25,'Jaylen Warren':26,'Aaron Jones':31,'Kaytron Allen':22,'MarShawn Lloyd':22,'Eli Heidenreich':23,
-  'Justin Jefferson':26,'Terry McLaurin':29,'Jakobi Meyers':29,'Romeo Doubs':25,'Jerry Jeudy':27,'Germie Bernard':22,
-  'Tyler Warren':24,'Dallas Goedert':30,'Gunnar Helm':23,
-  // Dynasty Depot
-  'Joe Burrow':28,'Trevor Lawrence':26,'Tyler Shough':25,
-  'Jonathan Taylor':26,'Travis Etienne':26,'Bhayshul Tuten':24,'Kenneth Gainwell':26,'Dylan Sampson':22,'Brian Robinson':26,
-  'A.J. Brown':28,'DJ Moore':28,'Carnell Tate':22,'Quentin Johnston':23,"De'Zhaun Stribling":23,"Tre' Harris":24,'Chris Brazzell':22,
-  'Jake Ferguson':26,'Dalton Schultz':30,'Eli Stowers':24
+// ── SLEEPER PLAYER AGES ───────────────────────────────────────────────────────
+// Ages are derived dynamically from Sleeper's player database (birth_date field)
+// Falls back to a small hardcoded table for key players if Sleeper hasn't loaded yet
+
+async function loadSleeperAges(){
+  // Try cache first
+  try{
+    const ts=localStorage.getItem(SLEEPER_TS_KEY);
+    const raw=localStorage.getItem(SLEEPER_STORAGE_KEY);
+    if(ts&&raw&&(Date.now()-parseInt(ts))<SLEEPER_MAX_AGE_MS){
+      Object.assign(sleeperBirthDates,JSON.parse(raw));
+      sleeperLoaded=true;
+      return;
+    }
+  }catch(e){}
+
+  try{
+    const res=await fetch('https://api.sleeper.app/v1/players/nfl',{signal:AbortSignal.timeout(15000)});
+    if(!res.ok)throw new Error('sleeper fetch failed');
+    const data=await res.json();
+    const birthMap={};
+    Object.values(data).forEach(p=>{
+      if(p.full_name&&p.birth_date){
+        birthMap[p.full_name.toLowerCase().trim()]=p.birth_date;
+      }
+      // Also index by first+last for players with middle names/suffixes
+      if(p.first_name&&p.last_name&&p.birth_date){
+        const key=(p.first_name+' '+p.last_name).toLowerCase().trim();
+        if(!birthMap[key])birthMap[key]=p.birth_date;
+      }
+    });
+    if(Object.keys(birthMap).length>100){
+      Object.assign(sleeperBirthDates,birthMap);
+      sleeperLoaded=true;
+      try{
+        localStorage.setItem(SLEEPER_STORAGE_KEY,JSON.stringify(birthMap));
+        localStorage.setItem(SLEEPER_TS_KEY,String(Date.now()));
+      }catch(e){}
+      console.log(`Sleeper ages loaded: ${Object.keys(birthMap).length} players`);
+    }
+  }catch(e){
+    console.warn('Sleeper fetch failed:',e.message);
+  }
+}
+
+// Small hardcoded fallback for key players — used only before Sleeper loads
+const AGE_FALLBACK={
+  'drake maye':23,'ceedee lamb':26,'nico collins':26,'harold fannin':22,
+  'rashee rice':25,'jacory croskey-merritt':22,'zach charbonnet':25,
+  'devonta smith':27,'ladd mcconkey':24,'isaiah likely':25,
+  'braelon allen':21,'jordan james':22,'emmett johnson':23,
+  'patrick mahomes':30,'lamar jackson':28,'josh allen':29,'jalen hurts':27,
+  'brock bowers':22,"ja'marr chase":26,'justin jefferson':26,
+  'james cook':25,"de'von achane":23,'saquon barkley':28,
+  'jahmyr gibbs':23,'christian mccaffrey':29,'ashton jeanty':21,
 };
+
+function ageFromBirthDate(birthDate){
+  if(!birthDate)return null;
+  try{
+    const[y,m,d]=birthDate.split('-').map(Number);
+    const today=new Date();
+    let age=today.getFullYear()-y;
+    if(today.getMonth()+1<m||(today.getMonth()+1===m&&today.getDate()<d))age--;
+    return age;
+  }catch(e){return null;}
+}
 
 function getPlayerAge(playerStr){
   const name=playerStr.split(' (')[0];
-  return PLAYER_AGES[name]||null;
+  const key=name.toLowerCase().trim();
+  // Try Sleeper birth date first (most accurate)
+  if(sleeperLoaded&&sleeperBirthDates[key]){
+    return ageFromBirthDate(sleeperBirthDates[key]);
+  }
+  // Try common name variations (e.g. "A.J. Brown" vs "AJ Brown")
+  if(sleeperLoaded){
+    const stripped=key.replace(/\./g,'').replace(/\s+/g,' ');
+    for(const [k,v] of Object.entries(sleeperBirthDates)){
+      const ks=k.replace(/\./g,'').replace(/\s+/g,' ');
+      if(ks===stripped)return ageFromBirthDate(v);
+    }
+  }
+  // Fall back to hardcoded table
+  return AGE_FALLBACK[key]||null;
 }
 
 function g(id){return document.getElementById(id)}
@@ -2009,6 +2052,7 @@ function processCsvImport(){
 window.addEventListener('DOMContentLoaded',()=>{
   renderOverview(g('mainContent'));
   loadKTC();
+  loadSleeperAges();
 });
 </script>
 </body>
