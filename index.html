@@ -306,6 +306,10 @@ textarea:focus{outline:none;border-color:#1D9E75}
     <div id="ktcImportStatus" style="margin-top:8px;font-size:12px"></div>
   </div>
 </div>
+
+<div class="modal-overlay" id="modalImportResults">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">Import Re-Assess Results</div><button class="modal-close" onclick="closeModal('modalImportResults')">&#x2715;</button></div>
     <p style="font-size:13px;color:#888;margin-bottom:14px;line-height:1.6">Paste the JSON response from Claude after running the Re-Assess prompt. All grades, windows, and philosophy summaries will update automatically.</p>
     <textarea id="resultsImportText" rows="12" placeholder="Paste Claude JSON response here..."></textarea>
     <div style="display:flex;gap:8px;margin-top:12px">
