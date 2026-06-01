@@ -43,6 +43,7 @@ body{background:#0c0c0c;color:#e8e6e0;font-family:'Barlow',sans-serif;min-height
 .tag-high-delta{background:#0a3d28;color:#1D9E75}
 .tag-extreme{background:#1e0a3a;color:#9b6aee}
 .tag-open{background:#0a3d28;color:#1D9E75}
+.tag-winnow{background:#3a0a0a;color:#ff6040;border:1px solid #8a2010}
 .tag-opening{background:#0a1e3a;color:#4a9ede}
 .tag-retool{background:#3a2a08;color:#d4950a}
 .tag-rebuild{background:#3a1510;color:#d06040}
@@ -172,6 +173,7 @@ textarea:focus{outline:none;border-color:#1D9E75}
 .sym{font-family:'DM Mono',monospace;font-size:9px;padding:2px 5px;border-radius:3px;font-weight:500}
 .sym-overall{background:#0a1e3a;color:#4a9ede}
 .sym-open{background:#0a3d28;color:#1D9E75}
+.sym-winnow{background:#3a0a0a;color:#ff6040;border:1px solid #8a2010}
 .sym-opening{background:#0a1e3a;color:#4a9ede}
 .sym-retool{background:#3a2a08;color:#d4950a}
 .sym-rebuild{background:#3a1510;color:#d06040}
@@ -262,7 +264,7 @@ textarea:focus{outline:none;border-color:#1D9E75}
     <button class="tab active" onclick="showTab('trade',this)">Trade Targets</button>
     <button class="tab" onclick="showTab('power',this)">Power Rankings</button>
     <button class="tab" onclick="showTab('age',this)">Age &amp; Draft</button>
-    <button class="tab" onclick="showTab('roster',this)">Rosters</button>
+    <button class="tab" onclick="showTab('production',this)">Team Production</button>
   </div>
 </div>
 
@@ -627,7 +629,7 @@ const TEAMS = [
     flex:{floor:'S',ceil:'A',prob:'High',frag:'antifragile',note:'RB overflow is extreme; Barkley, Henry, Judkins all have RB1 upside'},
     flexDepth:{floor:'S',ceil:'S',prob:'High',frag:'antifragile',note:'Duhhhh\'s RB depth functions as antifragile insurance for any injury in league'},
     overall:{floor:'A',ceil:'A',delta:'moderate',frag:'antifragile'},
-    window:'retool',windowNote:'Aging starters at RB and TE; window dependent on Stafford and Cook timeline',primeConcern:true,
+    window:'winnow',windowNote:'Aging starters at RB and TE; window dependent on Stafford and Cook timeline',primeConcern:true,
     philosophy:'Duhhhh has extraordinary RB depth — Achane, Cook, Barkley, Henry, Judkins, and Bigsby is arguably the deepest RB room in dynasty and an antifragile asset against league-wide injuries. The WR corps is solid with McMillan, Higgins, and Olave. The concern is timing: Stafford, Henry, Barkley, Kelce, and Andrews are all aging or past prime, creating a prime concern flag. Quinshon Judkins is the key retool asset — a first-round pick from 2026 who should inherit significant work going forward. The window is in retool because the core is top-heavy with aging players; moving aging assets for youth while Achane and Cook are still producers is the strategic imperative.',
     needs:['QB proven long-term','TE young'],surplus:['RB depth','RB elite'],
     age:{QB:38,RB:29,WR:26,TE:33},
@@ -673,7 +675,7 @@ let overviewFilter='all';
 let overviewMode='assessment';
 let showAges=false;
 let compareA='rhinos',compareB='wheel';
-let compareMode='matchup'; // 'matchup' or 'construction'
+let compareMode='production'; // 'production' or 'construction'
 let rosterTeam='rhinos',rosterFilter='ALL';
 let powerMode='preseason';
 let powerRankings=TEAMS.map(t=>t.id);
@@ -871,11 +873,9 @@ function getPickValue(roundStr){
   return fcPickValues[r]||PICK_VALUE_FALLBACK[r]||75;
 }
 
-// ── FLOOR GRADE ENGINE (FC-based, gap detection) ──────────────────────────────
+// ── FLOOR GRADE ENGINE (quintile-based, relative league distribution) ─────────
 // Weights for overall composite floor grade
 const FLOOR_WEIGHTS={qb:0.30,rb:0.20,wr:0.20,te:0.15,flex:0.15};
-// Gap threshold: a drop of this % or more triggers a new tier
-const TIER_GAP_THRESHOLD=0.17;
 
 function computeFloorGrades(){
   if(!ktcLoaded)return; // need FC values loaded first
@@ -898,35 +898,25 @@ function computeFloorGrades(){
     ].reduce((s,p)=>s+getKTCValue(p),0);
   });
 
-  // ── Step 2: assign letter grades via gap detection ──
-  function assignTierGrades(teams, fcKey){
+  // ── Step 2: assign quintile grades (relative to league) ──
+  // 12 teams: S=top 2, A=next 3 (3-5), B=middle 4 (6-9), C=bottom 3 (10-12)
+  function assignQuintileGrades(teams, fcKey){
     const sorted=[...teams].sort((a,b)=>b[fcKey]-a[fcKey]);
     const grades={};
-    // Start at S, drop tier when gap >= threshold
-    const tierLetters=['S','A','B','C'];
-    let tierIdx=0;
-    for(let i=0;i<sorted.length;i++){
-      if(i>0 && tierIdx<tierLetters.length-1){
-        const prev=sorted[i-1][fcKey];
-        const curr=sorted[i][fcKey];
-        // Gap detection: relative drop from previous team's value
-        if(prev>0 && (prev-curr)/prev >= TIER_GAP_THRESHOLD){
-          tierIdx++;
-        }
-        // Also hard-cap: never more than 4 teams at S, 5 at A
-        if(tierIdx===0 && i>=4) tierIdx=1;
-        if(tierIdx===1 && i>=9) tierIdx=2;
-      }
-      grades[sorted[i].id]=tierLetters[Math.min(tierIdx,3)];
-    }
+    sorted.forEach((t,i)=>{
+      if(i<2)grades[t.id]='S';
+      else if(i<5)grades[t.id]='A';
+      else if(i<9)grades[t.id]='B';
+      else grades[t.id]='C';
+    });
     return grades;
   }
 
-  const qbGrades  = assignTierGrades(TEAMS,'_fcQB');
-  const rbGrades  = assignTierGrades(TEAMS,'_fcRB');
-  const wrGrades  = assignTierGrades(TEAMS,'_fcWR');
-  const teGrades  = assignTierGrades(TEAMS,'_fcTE');
-  const flexGrades= assignTierGrades(TEAMS,'_fcFlex');
+  const qbGrades  = assignQuintileGrades(TEAMS,'_fcQB');
+  const rbGrades  = assignQuintileGrades(TEAMS,'_fcRB');
+  const wrGrades  = assignQuintileGrades(TEAMS,'_fcWR');
+  const teGrades  = assignQuintileGrades(TEAMS,'_fcTE');
+  const flexGrades= assignQuintileGrades(TEAMS,'_fcFlex');
 
   // ── Step 3: write floors back to team objects ──
   const GRADE_VAL={S:4,A:3,B:2,C:1};
@@ -1054,7 +1044,7 @@ function gradeTag(gr){return`<span class="grade grade-${gr}">${gr}</span>`}
 function fragTag(f){return`<span class="tag tag-${f}">${f}</span>`}
 function probTag(p){return`<span class="tag tag-${p.toLowerCase()}">${p}</span>`}
 function deltaTag(d){const cls=d==='high'?'tag-high-delta':`tag-${d}`;return`<span class="tag ${cls}">${d}</span>`}
-function windowTag(w){const map={open:'Open Now',opening:'Opening Soon',retool:'Retool',rebuild:'Rebuild'};return`<span class="tag tag-${w}">${map[w]||w}</span>`}
+function windowTag(w){const map={winnow:'Win Now',open:'Contending',opening:'Rising',retool:'Retooling',rebuild:'Rebuilding'};return`<span class="tag tag-${w}">${map[w]||w}</span>`}
 function ageTag(pos,age){
   const t={QB:{y:25,p:30,a:34},RB:{y:23,p:27,a:29},WR:{y:24,p:28,a:31},TE:{y:24,p:28,a:31}}[pos];
   if(!t)return'';
@@ -1089,6 +1079,7 @@ function showTab(tab,el){
   else if(tab==='power')renderPower(c);
   else if(tab==='age')renderAge(c);
   else if(tab==='roster')renderRoster(c);
+  else if(tab==='production')renderTeamProduction(c);
 }
 
 function openModal(id){g(id).classList.add('open')}
@@ -1109,7 +1100,7 @@ function renderOverview(c){
   let html=`
   <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:14px">
     <div class="filter-row" style="margin:0;gap:6px">
-      ${['all','open','opening','retool','rebuild'].map(f=>`<button class="filter-btn ${overviewFilter===f?'active':''}" onclick="overviewFilter='${f}';renderOverview(g('mainContent'))">${f==='all'?'All Teams':f==='open'?'Open Now':f==='opening'?'Opening Soon':f.charAt(0).toUpperCase()+f.slice(1)}</button>`).join('')}
+      ${['all','winnow','open','opening','retool','rebuild'].map(f=>`<button class="filter-btn ${overviewFilter===f?'active':''}" onclick="overviewFilter='${f}';renderOverview(g('mainContent'))">${f==='all'?'All Teams':f==='winnow'?'Win Now':f==='open'?'Contending':f==='opening'?'Rising':f==='retool'?'Retooling':f==='rebuild'?'Rebuilding':f}</button>`).join('')}
     </div>
     <div style="display:flex;gap:8px;align-items:center">
       <button class="btn btn-sm ${showAges?'btn-primary':'btn-secondary'}" onclick="showAges=!showAges;renderOverview(g('mainContent'))" style="font-size:10px">Ages ${showAges?'ON':'OFF'}</button>
@@ -1133,7 +1124,7 @@ function renderOverview(c){
 
     filtered.forEach(t=>{
       const isExp=expandedRows.has(t.id);
-      const symWindow=`sym-${t.window}`;
+      const symWindow=`sym-${t.window==='winnow'?'winnow':t.window}`;
       const symFrag=`sym-${t.overall.frag==='antifragile'?'anti':t.overall.frag}`;
       const cap=pickCapScore(t.picks2027);
 
@@ -1145,7 +1136,7 @@ function renderOverview(c){
               <div class="tname ${t.us?'us':''}">${t.us?'★ ':''}${t.name}</div>
               <div class="sym-row">
                 <span class="sym sym-overall">${gradeTagInline(t.overall.floor)}→${gradeTagInline(t.overall.ceil)}</span>
-                <span class="sym ${symWindow}">${{open:'Open Now',opening:'Opening',retool:'Retool',rebuild:'Rebuild'}[t.window]}</span>
+                <span class="sym ${symWindow}">${{winnow:'Win Now',open:'Contending',opening:'Rising',retool:'Retooling',rebuild:'Rebuilding'}[t.window]||t.window}</span>
                 <span class="sym ${symFrag}">${t.overall.frag==='antifragile'?'AF':t.overall.frag==='robust'?'Rob':'Frag'}</span>
                 <span class="sym sym-cap">Cap ${cap}</span>
                 ${t.primeConcern?'<span class="sym sym-warn">⚠ aging</span>':''}
@@ -1252,7 +1243,16 @@ function renderOverview(c){
                     <div style="display:flex;gap:8px;align-items:flex-end">${pips}</div>
                   </div>`;
                 })()}
-                <div style="margin-bottom:12px">${windowTag(t.window)}<span style="font-size:11px;color:#555;margin-left:8px">${t.windowNote}</span></div>
+                <div style="margin-bottom:12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap">${windowTag(t.window)}<span style="font-size:11px;color:#555;margin-left:4px">${t.windowNote}</span>
+                  <select style="margin-left:8px;font-size:10px;padding:2px 6px;background:#1a1a1a;border:1px solid #333;color:#888;border-radius:3px" onchange="overrideWindow('${t.id}',this.value)">
+                    <option value="">Override window…</option>
+                    <option value="winnow" ${t.window==='winnow'?'selected':''}>Win Now</option>
+                    <option value="open" ${t.window==='open'?'selected':''}>Contending</option>
+                    <option value="opening" ${t.window==='opening'?'selected':''}>Rising</option>
+                    <option value="retool" ${t.window==='retool'?'selected':''}>Retooling</option>
+                    <option value="rebuild" ${t.window==='rebuild'?'selected':''}>Rebuilding</option>
+                  </select>
+                </div>
                 <div class="det-label">Needs</div>
                 <div class="trade-need" style="margin-bottom:10px">${t.needs.map(n=>`<span class="need-pill">${n}</span>`).join('')}</div>
                 <div class="det-label">Surplus</div>
@@ -1344,6 +1344,25 @@ function toggleTeamRow(id){
   if(teamRow){teamRow.classList.toggle('expanded',expandedRows.has(id));}
 }
 
+function overrideWindow(teamId, newWindow){
+  if(!newWindow)return;
+  const team=TEAMS.find(t=>t.id===teamId);
+  if(!team)return;
+  team.window=newWindow;
+  saveAssessData();
+  renderOverview(g('mainContent'));
+  // Re-expand the row
+  expandedRows.add(teamId);
+  setTimeout(()=>{
+    const detailRow=g(`detail-${teamId}`);
+    const chevEl=g(`chev-${teamId}`);
+    const teamRow=g(`teamrow-${teamId}`);
+    if(detailRow)detailRow.style.display='table-row';
+    if(chevEl)chevEl.classList.add('open');
+    if(teamRow)teamRow.classList.add('expanded');
+  },50);
+}
+
 // ── COMPARE ───────────────────────────────────────────────────────────────────
 function renderCompare(c){
   const teamOpts=(sel)=>TEAMS.map(t=>`<option value="${t.id}" ${t.id===sel?'selected':''}>${t.us?'★ ':''}${t.name}</option>`).join('');
@@ -1359,13 +1378,13 @@ function renderCompare(c){
       <select onchange="compareB=this.value;renderCompare(g('mainContent'))">${teamOpts(compareB)}</select>
     </div>
     <div class="toggle-group">
-      <button class="toggle-btn ${compareMode==='matchup'?'active':''}" onclick="compareMode='matchup';renderCompare(g('mainContent'))">Matchup View</button>
+      <button class="toggle-btn ${compareMode==='production'?'active':''}" onclick="compareMode='production';renderCompare(g('mainContent'))">Team Production</button>
       <button class="toggle-btn ${compareMode==='construction'?'active':''}" onclick="compareMode='construction';renderCompare(g('mainContent'))">Roster Construction</button>
     </div>
   </div>`;
 
-  if(compareMode==='matchup'){
-    html+=renderMatchupView(tA,tB);
+  if(compareMode==='production'){
+    html+=renderProductionView(tA,tB);
   } else {
     html+=renderConstructionView(tA,tB);
   }
@@ -1475,6 +1494,180 @@ function renderMatchupView(tA,tB){
 
   return`<div style="margin-bottom:6px;font-size:11px;color:#555;font-style:italic">Matchup View uses floor grades — reliable weekly output assuming average injury luck.</div>
   <div style="overflow-y:auto;max-height:650px">${rows}${overallRow}</div>`;
+}
+
+// ── PRODUCTION VIEW (Compare tab) ─────────────────────────────────────────────
+const MIN_GAMES_RELIABLE = 8; // fewer games = small sample flag
+
+function getPlayerPPG(playerStr){
+  const stats = playerStatsMap[playerStr];
+  if(!stats) return null;
+  return stats.ppg > 0 ? stats.ppg : null;
+}
+
+function getPlayerGamesPlayed(playerStr){
+  const stats = playerStatsMap[playerStr];
+  if(!stats || !stats.ppg || stats.ppg === 0) return null;
+  return Math.round(stats.fp / stats.ppg);
+}
+
+function getPlayerPROJ(playerStr){
+  const stats = playerStatsMap[playerStr];
+  if(!stats) return null;
+  return stats.proj > 0 ? stats.proj : null;
+}
+
+// Choose best production metric: prefer PROJ during season, fall back to PPG
+function getProductionValue(playerStr){
+  const proj = getPlayerPROJ(playerStr);
+  if(currentWeek > 0 && proj && proj > 0) return {val: proj, type:'proj'};
+  const ppg = getPlayerPPG(playerStr);
+  if(ppg && ppg > 0){
+    const games = getPlayerGamesPlayed(playerStr);
+    return {val: ppg, type:'ppg', games: games||0, smallSample: games !== null && games < MIN_GAMES_RELIABLE};
+  }
+  return null;
+}
+
+function productionTag(playerStr, isStarter){
+  const prod = getProductionValue(playerStr);
+  const name = playerStr.split(' (')[0];
+  const nfl = playerStr.match(/\(([^)]+)\)/)?.[1]||'';
+  const posColor = '#e8e6e0';
+
+  let ppgHtml = '';
+  if(!prod){
+    ppgHtml = `<span style="font-family:'DM Mono',monospace;font-size:10px;color:#444;margin-left:auto">unproven</span>`;
+  } else if(prod.smallSample){
+    const color = prod.val >= 20 ? '#1D9E75' : prod.val >= 14 ? '#4a9ede' : prod.val >= 9 ? '#d4950a' : '#d06040';
+    ppgHtml = `<span style="font-family:'DM Mono',monospace;font-size:10px;color:${color};margin-left:auto">${prod.val.toFixed(1)}*</span>`;
+  } else {
+    const color = prod.val >= 20 ? '#1D9E75' : prod.val >= 14 ? '#4a9ede' : prod.val >= 9 ? '#d4950a' : '#d06040';
+    const label = prod.type === 'proj' ? 'proj' : 'ppg';
+    ppgHtml = `<span style="font-family:'DM Mono',monospace;font-size:10px;color:${color};margin-left:auto">${prod.val.toFixed(1)}<span style="font-size:8px;color:#444;margin-left:1px">${label}</span></span>`;
+  }
+
+  const bg = isStarter ? 'background:#161616' : '';
+  const nameStyle = isStarter ? 'font-weight:500;color:#e8e6e0' : 'color:#888';
+  return `<div style="display:flex;align-items:center;gap:5px;padding:3px 5px;border-radius:3px;${bg};margin-bottom:2px">
+    <span style="font-family:'DM Mono',monospace;font-size:9px;color:#555;min-width:20px">${nfl}</span>
+    <span style="font-size:11px;flex:1;${nameStyle}">${name}</span>
+    ${ppgHtml}
+  </div>`;
+}
+
+// Build projected lineup PPG total for a team
+function getTeamProjectedScore(team){
+  const lineup = [
+    ...team.qb.starters.slice(0,2),  // QB + SF
+    ...team.rb.starters.slice(0,2),  // RB1, RB2
+    ...team.wr.starters.slice(0,3),  // WR1-3
+    team.te.starters[0],              // TE
+  ].filter(Boolean);
+
+  // Flex: top 2 from depth pool by PPG
+  const flexPool = [
+    ...team.rb.depth,
+    ...team.wr.depth,
+    ...team.te.depth
+  ].map(p=>({p, val: (getProductionValue(p)||{val:0}).val}))
+   .sort((a,b)=>b.val-a.val);
+
+  const flexStarters = flexPool.slice(0,2).map(x=>x.p);
+  const allStarters = [...lineup, ...flexStarters];
+
+  let total = 0;
+  allStarters.forEach(p => {
+    const prod = getProductionValue(p);
+    if(prod) total += prod.val;
+  });
+  return { total: Math.round(total*10)/10, flexStarters };
+}
+
+function renderProductionView(tA, tB){
+  const hasData = Object.keys(playerStatsMap).length > 0;
+  const dataLabel = currentWeek > 0 ? `Week ${currentWeek} Projection` : 'Last Season PPG';
+
+  if(!hasData){
+    return`<div class="card" style="text-align:center;padding:30px 20px">
+      <div style="font-size:14px;color:#666;margin-bottom:10px">No production data imported yet.</div>
+      <div style="font-size:12px;color:#444;line-height:1.6;margin-bottom:14px">Import your FFPC CSV to populate PPG and projected scores. During the offseason, last season's PPG is used as the production baseline.</div>
+      <button class="btn btn-primary" onclick="openModal('modalImport')">Import CSV</button>
+    </div>`;
+  }
+
+  const scoreA = getTeamProjectedScore(tA);
+  const scoreB = getTeamProjectedScore(tB);
+  const nameA = tA.name.split(' ').slice(0,2).join(' ');
+  const nameB = tB.name.split(' ').slice(0,2).join(' ');
+
+  function buildTeamCol(team, flexStarters){
+    const allDepthIds = new Set(flexStarters);
+    const sections = [
+      {label:'QB / SF', players: team.qb.starters.slice(0,2), isStarter:true},
+      {label:'RB', players: team.rb.starters.slice(0,2), isStarter:true},
+      {label:'WR', players: team.wr.starters.slice(0,3), isStarter:true},
+      {label:'TE', players: team.te.starters.slice(0,1), isStarter:true},
+      {label:'⚡ FLEX (projected)', players: flexStarters, isStarter:true},
+      {label:'RB Depth', players: team.rb.depth.filter(p=>!allDepthIds.has(p)), isStarter:false},
+      {label:'WR Depth', players: team.wr.depth.filter(p=>!allDepthIds.has(p)), isStarter:false},
+      {label:'TE Depth', players: team.te.depth.filter(p=>!allDepthIds.has(p)), isStarter:false},
+      {label:'QB Depth', players: team.qb.depth, isStarter:false},
+    ];
+
+    let html = '';
+    sections.forEach(sec=>{
+      if(!sec.players.length) return;
+      const secBg = sec.isStarter ? '#111' : '#0d0d0d';
+      html += `<div style="padding:4px 8px 2px;background:${secBg};border-bottom:1px solid #1a1a1a">
+        <div style="font-family:'Barlow Condensed',sans-serif;font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:${sec.label.includes('FLEX')?'#1D9E75':'#444'};margin-bottom:3px">${sec.label}</div>
+        ${sec.players.map(p=>productionTag(p, sec.isStarter)).join('')}
+      </div>`;
+    });
+    return html;
+  }
+
+  const smallSampleExists = [...Object.keys(playerStatsMap)].some(p=>{
+    const prod = getProductionValue(p);
+    return prod && prod.smallSample;
+  });
+
+  return`<div style="margin-bottom:8px;font-size:11px;color:#555;font-style:italic">
+    Team Production compares projected weekly output based on ${dataLabel}. Highest-PPG depth players auto-fill Flex slots.
+    ${smallSampleExists ? `<span style="color:#d4950a;margin-left:8px">* = fewer than ${MIN_GAMES_RELIABLE} games — small sample, use with caution</span>` : ''}
+  </div>
+
+  <!-- Score summary -->
+  <div style="display:grid;grid-template-columns:1fr 80px 1fr;gap:8px;margin-bottom:12px;padding:12px;background:#161616;border:1px solid #222;border-radius:6px;align-items:center">
+    <div>
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;color:${tA.us?'#1D9E75':'#ccc'}">${tA.us?'★ ':''}${nameA}</div>
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:30px;font-weight:700;color:${scoreA.total>=scoreB.total?'#1D9E75':'#666'}">${scoreA.total}</div>
+    </div>
+    <div style="text-align:center;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;color:#444">vs</div>
+    <div style="text-align:right">
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;color:${tB.us?'#1D9E75':'#ccc'}">${tB.us?'★ ':''}${nameB}</div>
+      <div style="font-family:'Barlow Condensed',sans-serif;font-size:30px;font-weight:700;color:${scoreB.total>=scoreA.total?'#1D9E75':'#666'}">${scoreB.total}</div>
+    </div>
+  </div>
+
+  <!-- Side by side full roster -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:1px;background:#222;border:1px solid #222;border-radius:6px;overflow:hidden">
+    <div>
+      <div style="padding:8px 10px;background:#0d1a14;border-bottom:1px solid #1e3a28">
+        <span style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;color:${tA.us?'#1D9E75':'#ccc'}">${tA.us?'★ ':''}${nameA}</span>
+        <span style="font-family:'DM Mono',monospace;font-size:10px;color:#444;margin-left:8px">${dataLabel}</span>
+      </div>
+      ${buildTeamCol(tA, scoreA.flexStarters)}
+    </div>
+    <div style="border-left:1px solid #222">
+      <div style="padding:8px 10px;background:#0d1a14;border-bottom:1px solid #1e3a28">
+        <span style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;color:${tB.us?'#1D9E75':'#ccc'}">${tB.us?'★ ':''}${nameB}</span>
+        <span style="font-family:'DM Mono',monospace;font-size:10px;color:#444;margin-left:8px">${dataLabel}</span>
+      </div>
+      ${buildTeamCol(tB, scoreB.flexStarters)}
+    </div>
+  </div>
+  <div style="font-size:10px;color:#333;margin-top:8px">* = fewer than ${MIN_GAMES_RELIABLE} games played — PPG may not be reliable &nbsp;·&nbsp; "unproven" = no NFL PPG on record (rookies or new additions)</div>`;
 }
 
 function renderConstructionView(tA,tB){
@@ -2199,6 +2392,16 @@ function renderAge(c){
   c.innerHTML=html;
 }
 
+// ── TEAM PRODUCTION TAB ───────────────────────────────────────────────────────
+function renderTeamProduction(c){
+  // Team Production lives inside Team Compare tab — redirect there
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  const compareTab=document.querySelector('.tab[onclick*="compare"]');
+  if(compareTab)compareTab.classList.add('active');
+  compareMode='production';
+  renderCompare(c);
+}
+
 // ── ROSTER ────────────────────────────────────────────────────────────────────
 function renderRoster(c){
   const team=TEAMS.find(t=>t.id===rosterTeam);
@@ -2349,7 +2552,7 @@ EVALUATION FRAMEWORK:
 - TE premium scoring increases TE value, especially receiving TEs
 - Probability = likelihood AT LEAST ONE player in the group reaches ceiling
 - Fragility: fragile = strong starters little depth · robust = strong starters with real depth · antifragile = depth players positioned to inherit workload from other teams' injuries
-- Window: open = contending now · opening = 1-2 years away · retool = trade aging assets for youth · rebuild = starting over
+- Window: winnow = win now (aging core, asset-light, missing 1sts/2nds, 1-2 year runway before decline) · open = contending now sustainably · opening = 1-2 years away with upward trajectory · retool = competitive core but needs to convert aging assets for youth · rebuild = starting over, future-focused, low current win expectations
 - Prime concern = true if significant portion of key players are past or near end of prime
 - Flex ceiling = ALL non-starter non-QB depth players pooled (RB/WR/TE depth combined)
 
@@ -2368,7 +2571,7 @@ Grade scale: S=Elite, A=Strong, B=Average, C=Weak
 Fragility: fragile, robust, antifragile
 Probability: Low, Medium, High
 Delta: minimal, moderate, high, extreme
-Window: open, opening, retool, rebuild
+Window: winnow, open, opening, retool, rebuild
 Team IDs: rhinos, bookends, wheel, saltpond, steelhawks, third, delocho, meatshack, greeneggs, duhhh, warranted, depot
 
 Return ONLY the JSON array.`;
@@ -2568,6 +2771,7 @@ function processImportResults(){
 
 // ── CSV IMPORT ────────────────────────────────────────────────────────────────
 let csvFileData = null;
+let playerStatsMap = {}; // playerStr -> {ppg, fp, proj}
 
 function updateImportModeUI(){
   const mode = document.querySelector('input[name="importMode"]:checked').value;
@@ -2640,6 +2844,7 @@ function processCsvImport(){
   // Build per-team roster from CSV — skip free agents (blank OWNED BY)
   const rosterMap = {}; // teamId -> { QB:[], RB:[], WR:[], TE:[] }
   const statsMap  = {}; // teamId -> { fp, ppg, proj, own }
+  const playerStatsMap_local = {}; // playerStr -> {ppg, fp, proj}
   let rowCount = 0;
 
   for(let i = 1; i < lines.length; i++){
@@ -2670,6 +2875,12 @@ function processCsvImport(){
     const posGroup = ['QB','RB','WR','TE'].includes(pos) ? pos : 'OTHER';
     rosterMap[teamId][posGroup].push(playerStr);
 
+    // Always store PPG and FP per player for production view
+    const ppg = parseFloat(cols[iPPG]||0);
+    const fp  = parseFloat(cols[iFP]||0);
+    const proj = parseFloat(cols[iPROJ]||0);
+    if(!playerStatsMap_local[playerStr]) playerStatsMap_local[playerStr]={ppg,fp,proj};
+
     if(mode === 'full'){
       if(!statsMap[teamId]) statsMap[teamId] = { fp:0, ppg:0, proj:0, own:0 };
       statsMap[teamId].fp   += parseFloat(cols[iFP]  || 0);
@@ -2680,6 +2891,9 @@ function processCsvImport(){
   }
 
   if(!rowCount){ statusEl.innerHTML='<span style="color:#d06040">No owned players found. Check the CSV and try again.</span>'; return; }
+
+  // Merge player stats into global map
+  Object.assign(playerStatsMap, playerStatsMap_local);
 
   // Apply rosters to TEAMS data
   // Strategy: replace starters (first N by position) and depth (remainder)
