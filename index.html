@@ -205,6 +205,29 @@ textarea:focus{outline:none;border-color:#1D9E75}
 .pnfl{font-family:'DM Mono',monospace;font-size:9px;color:#444}
 .chev{color:#333;font-size:10px;transition:transform .2s;display:inline-block;flex-shrink:0}
 .chev.open{transform:rotate(180deg)}
+/* Power Rankings accordion */
+.rank-item{cursor:pointer!important}
+.rank-accordion{display:none;padding:12px 14px 14px 54px;border-top:1px solid #1e1e1e;background:#111}
+.rank-accordion.open{display:block}
+.acc-legend{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:12px;padding:6px 10px;background:#161616;border:1px solid #222;border-radius:5px}
+.acc-legend-item{display:flex;align-items:center;gap:5px;font-family:'DM Mono',monospace;font-size:9px;color:#555}
+.acc-legend-swatch{width:10px;height:10px;border-radius:2px;flex-shrink:0}
+.pos-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px;margin-bottom:12px}
+.pos-card{background:#161616;border:1px solid #222;border-radius:6px;padding:10px 12px;border-left:3px solid #333;position:relative}
+.pos-card.fc-S{border-left-color:#1D9E75}
+.pos-card.fc-A{border-left-color:#4a9ede}
+.pos-card.fc-B{border-left-color:#555}
+.pos-card.fc-C{border-left-color:#d06040}
+.pos-card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:6px}
+.pos-card-label{font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#aaa}
+.pos-card-rank{font-family:'DM Mono',monospace;font-size:9px;color:#444}
+.vol-badges{display:flex;gap:4px;flex-wrap:wrap;margin-top:5px}
+.vol-upside{font-family:'DM Mono',monospace;font-size:9px;padding:2px 5px;border-radius:3px;background:#2a1e08;border:1px solid #d4950a;color:#d4950a}
+.vol-risk{font-family:'DM Mono',monospace;font-size:9px;padding:2px 5px;border-radius:3px;background:#2a0e1a;border:1px solid #c04060;color:#c04060}
+.acc-summary{background:#161616;border:1px solid #222;border-radius:6px;padding:10px 12px;margin-top:4px}
+.variance-tag{font-family:'DM Mono',monospace;font-size:10px;padding:2px 7px;border-radius:3px;font-weight:500;display:inline-block}
+.btn-download{background:#1a1a2e;border-color:#6a5aee;color:#9b8aff}
+.btn-download:hover{background:#22204a}
 .detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
 .det-section{background:#161616;border:1px solid #222;border-radius:6px;padding:10px 12px}
 .det-label{font-family:'Barlow Condensed',sans-serif;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#444;margin-bottom:6px}
@@ -230,6 +253,7 @@ textarea:focus{outline:none;border-color:#1D9E75}
       <button class="btn btn-secondary btn-sm" onclick="openModal('modalImport')">Import</button>
       <button class="btn btn-copy btn-sm" onclick="copyReassessPrompt()">Copy Re-Assess Prompt</button>
       <button class="btn btn-import btn-sm" onclick="openModal('modalImportResults')">Import Results</button>
+      <button class="btn btn-download btn-sm" onclick="downloadHTML()">⬇ Download HTML</button>
       <span id="ktcStatusBadge" style="font-family:'DM Mono',monospace;font-size:10px;color:#555;display:flex;align-items:center;gap:6px">Values loading…</span>
       <span class="badge-us">brandont1223 · #630</span>
     </div>
@@ -532,6 +556,15 @@ const SLEEPER_STORAGE_KEY='rhinos_sleeper_ages';
 const SLEEPER_TS_KEY='rhinos_sleeper_timestamp';
 const SLEEPER_MAX_AGE_MS=30*24*60*60*1000; // 30 days — birth dates don't change
 
+// localStorage persistence keys
+const ROSTER_STORAGE_KEY='rhinos_roster_data';
+const ASSESS_STORAGE_KEY='rhinos_assess_data';
+
+// Power rankings accordion state
+let powerExpandedRows=new Set();
+// FC pick values parsed from API response
+let fcPickValues={}; // {1:3500, 2:1800, ...}
+
 // ── KTC VALUE LOADER ──────────────────────────────────────────────────────────
 const KTC_STORAGE_KEY='rhinos_ktc_values';
 const KTC_TS_KEY='rhinos_ktc_timestamp';
@@ -595,18 +628,31 @@ async function loadKTC(forceRefresh){
     if(!res.ok)throw new Error(`HTTP ${res.status}`);
     const data=await res.json();
     const newValues={};
+    const newPickValues={};
     if(Array.isArray(data)){
       data.forEach(entry=>{
         const name=(entry.player?.name||'').toLowerCase().trim();
         const val=entry.value??null;
-        if(name&&val!=null)newValues[name]=val;
+        if(!name||val==null)return;
+        // Detect pick entries — FC names them like "2026 Early 1st", "2027 Mid 2nd", etc.
+        const pickMatch=name.match(/\b(\d)(?:st|nd|rd|th)\b/);
+        if(pickMatch){
+          const round=parseInt(pickMatch[1]);
+          if(round>=1&&round<=7){
+            // Keep highest value seen for each round (early picks > mid > late)
+            if(!newPickValues[round]||val>newPickValues[round])newPickValues[round]=val;
+          }
+        } else {
+          newValues[name]=val;
+        }
       });
     }
     if(Object.keys(newValues).length>50){
       Object.assign(ktcValues,newValues);
+      if(Object.keys(newPickValues).length>0)Object.assign(fcPickValues,newPickValues);
       saveKTCToCache(newValues);
       ktcLoaded=true;
-      console.log(`FantasyCalc loaded: ${Object.keys(newValues).length} players`);
+      console.log(`FantasyCalc loaded: ${Object.keys(newValues).length} players, ${Object.keys(newPickValues).length} pick rounds`);
       computeFloorGrades();
       renderOverview(g('mainContent'));
     } else {
@@ -641,18 +687,27 @@ function processKtcManualImport(){
     const clean=raw.replace(/```json|```/g,'').trim();
     const parsed=JSON.parse(clean);
     const newValues={};
+    const newPickValues={};
     if(Array.isArray(parsed)){
       parsed.forEach(p=>{
         // FantasyCalc format: {player: {name: "..."}, value: N}
         const name=(p.player?.name||p.playerName||p.name||'').toLowerCase().trim();
         const val=p.value??p.overallValue??null;
-        if(name&&val!=null)newValues[name]=val;
+        if(!name||val==null)return;
+        const pickMatch=name.match(/\b(\d)(?:st|nd|rd|th)\b/);
+        if(pickMatch){
+          const round=parseInt(pickMatch[1]);
+          if(round>=1&&round<=7&&(!newPickValues[round]||val>newPickValues[round]))newPickValues[round]=val;
+        } else {
+          newValues[name]=val;
+        }
       });
     } else if(typeof parsed==='object'){
       Object.entries(parsed).forEach(([k,v])=>{newValues[k.toLowerCase().trim()]=v;});
     }
     if(Object.keys(newValues).length===0)throw new Error('No valid entries found');
     Object.assign(ktcValues,newValues);
+    if(Object.keys(newPickValues).length>0)Object.assign(fcPickValues,newPickValues);
     saveKTCToCache(newValues);
     ktcLoaded=true;
     g('ktcImportStatus').innerHTML=`<span style="color:#1D9E75">Loaded ${Object.keys(newValues).length} player values.</span>`;
@@ -668,6 +723,14 @@ function getKTCValue(playerName){
   if(!playerName)return 0;
   const clean=playerName.split(' (')[0].toLowerCase().trim();
   return ktcValues[clean]||0;
+}
+
+// Returns FC live pick value for a round, falls back to hardcoded approximates
+const PICK_VALUE_FALLBACK={1:3500,2:1800,3:800,4:400,5:150,6:100,7:75};
+function getPickValue(roundStr){
+  const r=parseInt((roundStr||'').replace('R',''));
+  if(isNaN(r))return 0;
+  return fcPickValues[r]||PICK_VALUE_FALLBACK[r]||75;
 }
 
 // ── FLOOR GRADE ENGINE (FC-based, gap detection) ──────────────────────────────
@@ -1554,13 +1617,13 @@ function buildRosterSideForTarget(players,team,label,highlightRoles,highlightNam
     const pickRows=picks.map(p=>{
       const r=parseInt(p.replace('R',''));
       // Picks have approximate KTC values: R1~3500, R2~1800, R3~800, R4~400
-      const pickKtcApprox=r===1?3500:r===2?1800:r===3?800:r<=5?400:150;
+      const pickKtcApprox=getPickValue(p);
       const pickLabel=`2027 ${p}`;
       const safePickName=pickLabel.replace(/'/g,"\\'");
       return`<div class="roster-player-row highlight-role" onclick="addToTradeCalc('${safePickName}','${side}','PICK')">
         <span class="pick-pill ${r===1?'r1':r===2?'r2':r===3?'r3':''}" style="font-size:9px;cursor:pointer">${p}</span>
         <span class="rp-name" style="font-size:11px">2027 ${p} Pick</span>
-        <span class="ktc-badge">~${pickKtcApprox}</span>
+        <span class="ktc-badge">${fcPickValues[r]?'':'~'}${pickKtcApprox}</span>
       </div>`;
     }).join('');
     picksHtml=`<div style="margin-top:8px;padding-top:8px;border-top:1px solid #1e1e1e">
@@ -1576,8 +1639,7 @@ function buildRosterSideForTarget(players,team,label,highlightRoles,highlightNam
 function buildTradeCalc(rhinos,team){
   function itemValue(item){
     if(item.pos==='PICK'){
-      const r=parseInt((item.name.match(/R(\d)/)||[0,4])[1]);
-      return r===1?3500:r===2?1800:r===3?800:r<=5?400:150;
+      return getPickValue(item.name);
     }
     return getKTCValue(item.name)||0;
   }
@@ -1689,10 +1751,10 @@ function renderPower(c){
   let html=`
   <div class="filter-row" style="justify-content:space-between">
     <div class="toggle-group">
-      <button class="toggle-btn ${!isMid?'active':''}" onclick="powerMode='preseason';renderPower(g('mainContent'))">Pre-Season</button>
-      <button class="toggle-btn ${isMid?'active':''}" onclick="powerMode='midseason';renderPower(g('mainContent'))">Mid-Season</button>
+      <button class="toggle-btn ${!isMid?'active':''}" onclick="powerMode='preseason';powerExpandedRows=new Set();renderPower(g('mainContent'))">Pre-Season</button>
+      <button class="toggle-btn ${isMid?'active':''}" onclick="powerMode='midseason';powerExpandedRows=new Set();renderPower(g('mainContent'))">Mid-Season</button>
     </div>
-    ${isMid?'<button class="btn btn-secondary btn-sm" onclick="openModal(\'modalImport\')">Import Data</button>':'<div style="font-size:12px;color:#555">Drag to reorder · pre-season analytical ranking</div>'}
+    ${isMid?'<button class="btn btn-secondary btn-sm" onclick="openModal(\'modalImport\')">Import Data</button>':'<div style="font-size:12px;color:#555">Drag to reorder · click row to expand · pre-season analytical ranking</div>'}
   </div>`;
 
   if(isMid&&!statsData){
@@ -1705,42 +1767,217 @@ function renderPower(c){
     const ranks=isMid&&statsData?getMidseasonRanks():powerRankings.map(id=>{
       const team=TEAMS.find(t=>t.id===id);
       const preseason=PRESEASON_RANKS.find(r=>r.id===id)||{id,rationale:''};
-      // Use re-assess rationale if available, fall back to preseason
       return{...preseason, rationale: team?.powerRationale||preseason.rationale};
     });
     html+=`<div id="rankList">`;
     ranks.forEach((r,i)=>{
       const team=TEAMS.find(t=>t.id===r.id);
       if(!team)return;
-      // Parse up/down triggers from rationale if present (format: "text. Up: x. Down: y.")
+      const isExpanded=powerExpandedRows.has(r.id);
       const rationale=r.rationale||'';
       const upMatch=rationale.match(/Up:\s*([^.]+)/i);
       const downMatch=rationale.match(/Down:\s*([^.]+)/i);
       const mainText=rationale.replace(/Up:[^.]+\./i,'').replace(/Down:[^.]+\./i,'').trim();
+      const varTag=buildVarianceTag(team);
+
       html+=`<div class="rank-item ${team.us?'us':''}" draggable="${!isMid}" id="rank-${r.id}" data-id="${r.id}"
-        ondragstart="dragStart(event)" ondragover="dragOver(event)" ondrop="drop(event)" ondragend="dragEnd(event)">
-        <div class="rank-num ${i<3?'top3':''}">${i+1}</div>
-        ${!isMid?'<div class="drag-handle">⋮⋮</div>':''}
-        <div style="flex:1">
-          <div class="rank-name">${team.us?'★ ':''}${team.name}
-            <span style="margin-left:8px">${gradeTag(team.overall.floor)}→${gradeTag(team.overall.ceil)}</span>
-            <span style="margin-left:6px">${windowTag(team.window)}</span>
+        ondragstart="dragStart(event)" ondragover="dragOver(event)" ondrop="drop(event)" ondragend="dragEnd(event)"
+        onclick="togglePowerRow('${r.id}',event)" style="cursor:pointer;flex-wrap:wrap;padding:0">
+        <div style="display:flex;align-items:center;gap:12px;padding:10px 14px;width:100%">
+          <div class="rank-num ${i<3?'top3':''}">${i+1}</div>
+          ${!isMid?'<div class="drag-handle" onclick="event.stopPropagation()">⋮⋮</div>':''}
+          <div style="flex:1;min-width:0">
+            <div class="rank-name">${team.us?'★ ':''}${team.name}
+              <span style="margin-left:8px">${gradeTag(team.overall.floor)}→${gradeTag(team.overall.ceil)}</span>
+              <span style="margin-left:6px">${windowTag(team.window)}</span>
+              <span style="margin-left:6px">${varTag}</span>
+            </div>
+            <div class="rank-rationale">${isMid&&r.score?`Score: ${r.score.toFixed(1)} · `:''} ${mainText}</div>
+            ${(upMatch||downMatch)?`<div style="display:flex;gap:8px;margin-top:4px;flex-wrap:wrap">
+              ${upMatch?`<span style="font-family:'DM Mono',monospace;font-size:9px;padding:2px 6px;border-radius:3px;background:#0a3d28;color:#1D9E75">▲ ${upMatch[1].trim()}</span>`:''}
+              ${downMatch?`<span style="font-family:'DM Mono',monospace;font-size:9px;padding:2px 6px;border-radius:3px;background:#3a1510;color:#d06040">▼ ${downMatch[1].trim()}</span>`:''}
+            </div>`:''}
           </div>
-          <div class="rank-rationale">${isMid&&r.score?`Score: ${r.score.toFixed(1)} · `:''} ${mainText}</div>
-          ${(upMatch||downMatch)?`<div style="display:flex;gap:8px;margin-top:4px;flex-wrap:wrap">
-            ${upMatch?`<span style="font-family:'DM Mono',monospace;font-size:9px;padding:2px 6px;border-radius:3px;background:#0a3d28;color:#1D9E75">▲ ${upMatch[1].trim()}</span>`:''}
-            ${downMatch?`<span style="font-family:'DM Mono',monospace;font-size:9px;padding:2px 6px;border-radius:3px;background:#3a1510;color:#d06040">▼ ${downMatch[1].trim()}</span>`:''}
-          </div>`:''}
+          <div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end">
+            ${fragTag(team.overall.frag)}
+            <span class="rank-acc-chev" style="font-family:'DM Mono',monospace;font-size:10px;color:#333">${isExpanded?'▲':'▼'}</span>
+          </div>
         </div>
-        <div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end">${fragTag(team.overall.frag)}</div>
+        <div class="rank-accordion${isExpanded?' open':''}" id="acc-${r.id}">
+          ${buildPowerAccordion(team)}
+        </div>
       </div>`;
     });
     html+=`</div>`;
-    if(!isMid)html+=`<div style="font-size:12px;color:#444;margin-top:8px;text-align:center">Drag rows to reorder pre-season rankings</div>`;
+    if(!isMid)html+=`<div style="font-size:12px;color:#444;margin-top:8px;text-align:center">Drag to reorder · click to expand breakdown</div>`;
   }
   c.innerHTML=html;
   if(!isMid)initDrag();
 }
+
+function togglePowerRow(id,e){
+  // Don't toggle when clicking drag handle
+  if(e&&e.target&&e.target.classList.contains('drag-handle'))return;
+  const acc=document.getElementById('acc-'+id);
+  const row=document.getElementById('rank-'+id);
+  if(!acc)return;
+  const isOpen=acc.classList.contains('open');
+  if(isOpen){
+    acc.classList.remove('open');
+    powerExpandedRows.delete(id);
+    // flip chevron
+    const chev=row.querySelector('.rank-acc-chev');
+    if(chev)chev.textContent='▼';
+  } else {
+    acc.classList.add('open');
+    powerExpandedRows.add(id);
+    const chev=row.querySelector('.rank-acc-chev');
+    if(chev)chev.textContent='▲';
+  }
+}
+
+// Compute FC league rank for a position key (1=best, 12=worst)
+function fcLeagueRank(teamId, fcKey){
+  const sorted=[...TEAMS].sort((a,b)=>(b[fcKey]||0)-(a[fcKey]||0));
+  return sorted.findIndex(t=>t.id===teamId)+1;
+}
+
+// Recompute _fc values for a single team (used in accordion without full recompute)
+function ensureFcValues(){
+  TEAMS.forEach(t=>{
+    if(t._fcQB!==undefined)return; // already computed
+    t._fcQB=t.qb.starters.slice(0,2).reduce((s,p)=>s+getKTCValue(p),0);
+    t._fcRB=t.rb.starters.slice(0,2).reduce((s,p)=>s+getKTCValue(p),0);
+    t._fcWR=t.wr.starters.slice(0,3).reduce((s,p)=>s+getKTCValue(p),0);
+    t._fcTE=t.te.starters.slice(0,1).reduce((s,p)=>s+getKTCValue(p),0);
+    t._fcFlex=[...t.rb.depth,...t.wr.depth,...t.te.depth].reduce((s,p)=>s+getKTCValue(p),0);
+  });
+}
+
+function buildVarianceTag(team){
+  // Derive a short variance profile from the mix of floor, ceil, frag signals
+  const floorVal={S:4,A:3,B:2,C:1};
+  const fl=floorVal[team.overall.floor]||2;
+  const cl=floorVal[team.overall.ceil]||2;
+  const frag=team.overall.frag;
+  const delta=team.overall.delta;
+  let label,bg,color;
+  if(fl>=3&&(frag==='fragile'||delta==='high'||delta==='extreme')){label='High Floor · High Variance';bg='#2a1e08';color='#d4950a';}
+  else if(fl>=3&&frag!=='fragile'){label='High Floor · Low Variance';bg='#0a2a1a';color='#1D9E75';}
+  else if(fl<=2&&cl>=3&&(frag==='antifragile'||delta==='high'||delta==='extreme')){label='Low Floor · Upside-Heavy';bg='#0a1e3a';color='#4a9ede';}
+  else if(fl<=2&&cl<=2){label='Low Floor · Limited Upside';bg='#2a1a1a';color='#d06040';}
+  else{label='Balanced';bg='#222';color='#888';}
+  return`<span class="variance-tag" style="background:${bg};color:${color};font-size:9px">${label}</span>`;
+}
+
+function buildPowerAccordion(team){
+  ensureFcValues();
+  const fcTier=(fcKey)=>{
+    const rank=fcLeagueRank(team.id,fcKey);
+    if(rank<=4)return'S';
+    if(rank<=8)return'A';
+    if(rank<=10)return'B';
+    return'C';
+  };
+
+  // Volatility badge logic
+  function upsideBadge(pos){
+    const p=team[pos];
+    const {S:s,A:a,B:b,C:c}={S:4,A:3,B:2,C:1};
+    const flV={S:4,A:3,B:2,C:1}[p.floor]||2;
+    const ceV={S:4,A:3,B:2,C:1}[p.ceil]||2;
+    // Upside: ceil meaningfully above floor, or high prob on antifragile
+    return (ceV-flV>=1) || p.frag==='antifragile' || p.prob==='High';
+  }
+  function riskBadge(pos){
+    const p=team[pos];
+    return p.frag==='fragile' || p.prob==='Low';
+  }
+
+  const posGroups=[
+    {key:'qb',label:'QB / SF',fcKey:'_fcQB',starters:team.qb.starters,pos:team.qb},
+    {key:'rb',label:'RB',fcKey:'_fcRB',starters:team.rb.starters,pos:team.rb},
+    {key:'wr',label:'WR',fcKey:'_fcWR',starters:team.wr.starters,pos:team.wr},
+    {key:'te',label:'TE',fcKey:'_fcTE',starters:team.te.starters,pos:team.te},
+    {key:'flex',label:'Flex Depth',fcKey:'_fcFlex',starters:[],pos:team.flex},
+  ];
+
+  let cardsHtml=`<div class="pos-cards">`;
+  posGroups.forEach(({key,label,fcKey,starters,pos})=>{
+    const tier=fcTier(fcKey);
+    const rank=fcLeagueRank(team.id,fcKey);
+    const showUpside=key!=='flex'?upsideBadge(key):pos.frag==='antifragile'||pos.prob==='High';
+    const showRisk=key!=='flex'?riskBadge(key):pos.frag==='fragile';
+    const starterNames=starters.slice(0,key==='wr'?3:key==='qb'?2:1).map(p=>p.split(' (')[0]).join(', ');
+    const depthCount=key==='flex'
+      ? team.rb.depth.length+team.wr.depth.length+team.te.depth.length
+      : (team[key]?.depth?.length||0);
+
+    cardsHtml+=`<div class="pos-card fc-${tier}">
+      <div class="pos-card-header">
+        <span class="pos-card-label">${label}</span>
+        <span class="pos-card-rank">#${rank} of 12</span>
+      </div>
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px">
+        ${gradeTag(pos.floor)}<span style="color:#333;font-size:10px">→</span>${gradeTag(pos.ceil)}
+        ${fragTag(pos.frag)}
+      </div>
+      ${starterNames?`<div style="font-size:10px;color:#888;margin-bottom:2px;line-height:1.4">${starterNames}</div>`:''}
+      ${depthCount>0?`<div style="font-family:'DM Mono',monospace;font-size:9px;color:#444">${depthCount} depth</div>`:''}
+      ${pos.note?`<div style="font-family:'DM Mono',monospace;font-size:9px;color:#555;margin-top:3px;font-style:italic">${pos.note}</div>`:''}
+      <div class="vol-badges">
+        ${showUpside?`<span class="vol-upside">↑ UPSIDE</span>`:''}
+        ${showRisk?`<span class="vol-risk">↓ RISK</span>`:''}
+      </div>
+    </div>`;
+  });
+  cardsHtml+=`</div>`;
+
+  // Legend
+  const legend=`<div class="acc-legend">
+    <div style="font-family:'Barlow Condensed',sans-serif;font-size:10px;color:#555;letter-spacing:.06em;text-transform:uppercase;margin-right:4px">Border = FC rank:</div>
+    <div class="acc-legend-item"><div class="acc-legend-swatch" style="background:#1D9E75"></div>Top 4 (Strength)</div>
+    <div class="acc-legend-item"><div class="acc-legend-swatch" style="background:#4a9ede"></div>Mid (Solid)</div>
+    <div class="acc-legend-item"><div class="acc-legend-swatch" style="background:#555"></div>Lower-mid</div>
+    <div class="acc-legend-item"><div class="acc-legend-swatch" style="background:#d06040"></div>Bottom (Weak)</div>
+    <div style="width:1px;background:#222;margin:0 4px"></div>
+    <div style="font-family:'Barlow Condensed',sans-serif;font-size:10px;color:#555;letter-spacing:.06em;text-transform:uppercase;margin-right:4px">Badges = volatility:</div>
+    <div class="acc-legend-item"><span class="vol-upside" style="font-size:8px">↑ UPSIDE</span> Ceiling upside / antifragile depth</div>
+    <div class="acc-legend-item"><span class="vol-risk" style="font-size:8px">↓ RISK</span> Fragile / low probability</div>
+  </div>`;
+
+  // Summary footer
+  const posLabels=['QB','RB','WR','TE','Flex'];
+  const posFloors=team.overall.posFloors||[team.qb.floor,team.rb.floor,team.wr.floor,team.te.floor,team.flex.floor];
+  const bal=team.overall.balance||'—';
+  const balColor=bal==='even'?'#1D9E75':bal==='steady'?'#4a9ede':bal==='uneven'?'#d4950a':'#d06040';
+  const pips=posLabels.map((lbl,i)=>`<span style="display:flex;flex-direction:column;align-items:center;gap:2px"><span style="font-family:'DM Mono',monospace;font-size:8px;color:#444">${lbl}</span>${gradeTagInline(posFloors[i]||'C')}</span>`).join('');
+  const needsHtml=(team.needs||[]).map(n=>`<span class="need-pill">${n}</span>`).join('');
+  const surplusHtml=(team.surplus||[]).map(n=>`<span class="surplus-pill">${n}</span>`).join('');
+
+  const summary=`<div class="acc-summary">
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:8px">
+      <div style="display:flex;gap:6px;align-items:center">${gradeTag(team.overall.floor)}<span style="color:#444;font-size:10px">floor</span></div>
+      <div style="display:flex;gap:6px;align-items:center">${gradeTag(team.overall.ceil)}<span style="color:#444;font-size:10px">ceil</span></div>
+      ${fragTag(team.overall.frag)}
+      ${windowTag(team.window)}
+      <span style="font-family:'DM Mono',monospace;font-size:9px;color:#555">${team.windowNote||''}</span>
+    </div>
+    <div style="margin-bottom:8px">
+      <div style="font-family:'DM Mono',monospace;font-size:9px;color:#444;text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px">Floor Balance <span style="color:${balColor};margin-left:4px">${bal}</span></div>
+      <div style="display:flex;gap:8px;align-items:flex-end">${pips}</div>
+    </div>
+    ${needsHtml||surplusHtml?`<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:8px">
+      ${needsHtml?`<div><div style="font-family:'DM Mono',monospace;font-size:9px;color:#555;margin-bottom:3px">NEEDS</div><div class="trade-need">${needsHtml}</div></div>`:''}
+      ${surplusHtml?`<div><div style="font-family:'DM Mono',monospace;font-size:9px;color:#555;margin-bottom:3px">SURPLUS</div><div class="trade-need">${surplusHtml}</div></div>`:''}
+    </div>`:''}
+    <div class="philosophy" style="font-size:11px">${team.philosophy||''}</div>
+  </div>`;
+
+  return legend+cardsHtml+summary;
+}
+
+
 
 function getMidseasonRanks(){
   if(!statsData)return[];
@@ -2025,6 +2262,112 @@ Return ONLY the JSON array.`;
   }
 }
 
+// ── LOCALSTORAGE PERSISTENCE ──────────────────────────────────────────────────
+function saveRosterData(){
+  try{
+    const data={};
+    TEAMS.forEach(t=>{
+      data[t.id]={
+        qbStarters:t.qb.starters,qbDepth:t.qb.depth,
+        rbStarters:t.rb.starters,rbDepth:t.rb.depth,
+        wrStarters:t.wr.starters,wrDepth:t.wr.depth,
+        teStarters:t.te.starters,teDepth:t.te.depth,
+        rostered:t.rostered
+      };
+    });
+    localStorage.setItem(ROSTER_STORAGE_KEY,JSON.stringify(data));
+  }catch(e){console.warn('Roster save failed:',e.message);}
+}
+
+function saveAssessData(){
+  try{
+    const data={};
+    TEAMS.forEach(t=>{
+      data[t.id]={
+        qbCeil:t.qb.ceil,qbProb:t.qb.prob,qbFrag:t.qb.frag,
+        rbCeil:t.rb.ceil,rbProb:t.rb.prob,rbFrag:t.rb.frag,
+        wrCeil:t.wr.ceil,wrProb:t.wr.prob,wrFrag:t.wr.frag,
+        teCeil:t.te.ceil,teProb:t.te.prob,teFrag:t.te.frag,
+        flexCeil:t.flex.ceil,flexProb:t.flex.prob,flexFrag:t.flex.frag,flexNote:t.flex.note,
+        flexDepthCeil:t.flexDepth.ceil,flexDepthFrag:t.flexDepth.frag,flexDepthNote:t.flexDepth.note,
+        overallCeil:t.overall.ceil,overallDelta:t.overall.delta,overallFrag:t.overall.frag,
+        window:t.window,windowNote:t.windowNote,primeConcern:t.primeConcern,
+        philosophy:t.philosophy,needs:t.needs,surplus:t.surplus,
+        powerRank:t.powerRank,powerRationale:t.powerRationale
+      };
+    });
+    localStorage.setItem(ASSESS_STORAGE_KEY,JSON.stringify(data));
+  }catch(e){console.warn('Assess save failed:',e.message);}
+}
+
+function loadPersistedData(){
+  // Load roster data
+  try{
+    const raw=localStorage.getItem(ROSTER_STORAGE_KEY);
+    if(raw){
+      const data=JSON.parse(raw);
+      TEAMS.forEach(t=>{
+        const d=data[t.id];
+        if(!d)return;
+        if(d.qbStarters)t.qb.starters=d.qbStarters;
+        if(d.qbDepth)t.qb.depth=d.qbDepth;
+        if(d.rbStarters)t.rb.starters=d.rbStarters;
+        if(d.rbDepth)t.rb.depth=d.rbDepth;
+        if(d.wrStarters)t.wr.starters=d.wrStarters;
+        if(d.wrDepth)t.wr.depth=d.wrDepth;
+        if(d.teStarters)t.te.starters=d.teStarters;
+        if(d.teDepth)t.te.depth=d.teDepth;
+        if(d.rostered)t.rostered=d.rostered;
+      });
+    }
+  }catch(e){console.warn('Roster load failed:',e.message);}
+
+  // Load assess data
+  try{
+    const raw=localStorage.getItem(ASSESS_STORAGE_KEY);
+    if(raw){
+      const data=JSON.parse(raw);
+      TEAMS.forEach(t=>{
+        const d=data[t.id];
+        if(!d)return;
+        if(d.qbCeil)t.qb.ceil=d.qbCeil;
+        if(d.qbProb)t.qb.prob=d.qbProb;
+        if(d.qbFrag)t.qb.frag=d.qbFrag;
+        if(d.rbCeil)t.rb.ceil=d.rbCeil;
+        if(d.rbProb)t.rb.prob=d.rbProb;
+        if(d.rbFrag)t.rb.frag=d.rbFrag;
+        if(d.wrCeil)t.wr.ceil=d.wrCeil;
+        if(d.wrProb)t.wr.prob=d.wrProb;
+        if(d.wrFrag)t.wr.frag=d.wrFrag;
+        if(d.teCeil)t.te.ceil=d.teCeil;
+        if(d.teProb)t.te.prob=d.teProb;
+        if(d.teFrag)t.te.frag=d.teFrag;
+        if(d.flexCeil)t.flex.ceil=d.flexCeil;
+        if(d.flexProb)t.flex.prob=d.flexProb;
+        if(d.flexFrag)t.flex.frag=d.flexFrag;
+        if(d.flexNote)t.flex.note=d.flexNote;
+        if(d.flexDepthCeil)t.flexDepth.ceil=d.flexDepthCeil;
+        if(d.flexDepthFrag)t.flexDepth.frag=d.flexDepthFrag;
+        if(d.flexDepthNote)t.flexDepth.note=d.flexDepthNote;
+        if(d.overallCeil)t.overall.ceil=d.overallCeil;
+        if(d.overallDelta)t.overall.delta=d.overallDelta;
+        if(d.overallFrag)t.overall.frag=d.overallFrag;
+        if(d.window)t.window=d.window;
+        if(d.windowNote)t.windowNote=d.windowNote;
+        if(typeof d.primeConcern==='boolean')t.primeConcern=d.primeConcern;
+        if(d.philosophy)t.philosophy=d.philosophy;
+        if(d.needs)t.needs=d.needs;
+        if(d.surplus)t.surplus=d.surplus;
+        if(d.powerRank)t.powerRank=d.powerRank;
+        if(d.powerRationale)t.powerRationale=d.powerRationale;
+      });
+      // Reorder powerRankings from persisted ranks
+      const ranked=TEAMS.filter(t=>t.powerRank).sort((a,b)=>a.powerRank-b.powerRank);
+      if(ranked.length===TEAMS.length)powerRankings=ranked.map(t=>t.id);
+    }
+  }catch(e){console.warn('Assess load failed:',e.message);}
+}
+
 // ── IMPORT RESULTS ────────────────────────────────────────────────────────────
 function processImportResults(){
   const raw=g('resultsImportText').value.trim();
@@ -2078,6 +2421,7 @@ function processImportResults(){
       }
     }
     g('resultsImportStatus').innerHTML=`<span style="color:#1D9E75">Updated ${results.length} teams successfully.</span>`;
+    saveAssessData();
     setTimeout(()=>{closeModal('modalImportResults');renderOverview(g('mainContent'));},1200);
   }catch(err){
     g('resultsImportStatus').innerHTML=`<span style="color:#d06040">Parse error: ${err.message}. Make sure you paste the raw JSON.</span>`;
@@ -2232,13 +2576,66 @@ function processCsvImport(){
   const modeLabel = mode === 'full' ? 'rosters + stats' : 'rosters';
   statusEl.innerHTML=`<span style="color:#1D9E75">Updated ${modeLabel} for ${teamsUpdated} teams (${rowCount} players). Use Copy Re-Assess Prompt to refresh grades.</span>`;
   computeFloorGrades();
+  saveRosterData();
   csvFileData = null;
   g('csvFileInput').value = '';
   g('csvFileLabel').textContent = 'Choose CSV file or click to browse';
   setTimeout(()=>{ closeModal('modalImport'); renderOverview(g('mainContent')); }, 1800);
 }
 
+// ── DOWNLOAD HTML ─────────────────────────────────────────────────────────────
+function downloadHTML(){
+  // Serialize current in-memory TEAMS state back into the HTML source
+  const src=document.documentElement.outerHTML;
+
+  // Build a serialized TEAMS array string from current in-memory state
+  function esc(s){return(s||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");}
+  function arr(a){return'['+a.map(s=>`'${esc(s)}'`).join(',')+']';}
+  function bool(b){return b?'true':'false';}
+
+  const teamsJs=TEAMS.map(t=>`  {
+    id:'${t.id}',name:'${esc(t.name)}',owner:'${esc(t.owner||'')}',us:${bool(t.us)},rostered:${t.rostered},
+    qb:{floor:'${t.qb.floor}',ceil:'${t.qb.ceil}',prob:'${t.qb.prob}',frag:'${t.qb.frag}',starters:${arr(t.qb.starters)},depth:${arr(t.qb.depth)}},
+    rb:{floor:'${t.rb.floor}',ceil:'${t.rb.ceil}',prob:'${t.rb.prob}',frag:'${t.rb.frag}',starters:${arr(t.rb.starters)},depth:${arr(t.rb.depth)}},
+    wr:{floor:'${t.wr.floor}',ceil:'${t.wr.ceil}',prob:'${t.wr.prob}',frag:'${t.wr.frag}',starters:${arr(t.wr.starters)},depth:${arr(t.wr.depth)}},
+    te:{floor:'${t.te.floor}',ceil:'${t.te.ceil}',prob:'${t.te.prob}',frag:'${t.te.frag}',starters:${arr(t.te.starters)},depth:${arr(t.te.depth)}},
+    flex:{floor:'${t.flex.floor}',ceil:'${t.flex.ceil}',prob:'${t.flex.prob}',frag:'${t.flex.frag}',note:'${esc(t.flex.note||'')}'},
+    flexDepth:{floor:'${t.flexDepth.floor}',ceil:'${t.flexDepth.ceil}',prob:'${t.flexDepth.prob}',frag:'${t.flexDepth.frag}',note:'${esc(t.flexDepth.note||'')}'},
+    overall:{floor:'${t.overall.floor}',ceil:'${t.overall.ceil}',delta:'${t.overall.delta}',frag:'${t.overall.frag}'},
+    window:'${t.window}',windowNote:'${esc(t.windowNote||'')}',primeConcern:${bool(t.primeConcern)},
+    philosophy:'${esc(t.philosophy||'')}',
+    needs:${arr(t.needs||[])},surplus:${arr(t.surplus||[])},
+    age:{QB:${t.age.QB},RB:${t.age.RB},WR:${t.age.WR},TE:${t.age.TE}},
+    picks2027:${arr(t.picks2027||[])},
+    powerRank:${t.powerRank||0},powerRationale:'${esc(t.powerRationale||'')}'
+  }`).join(',\n');
+
+  // Replace the TEAMS array in the source — find block between `const TEAMS = [` and matching `];`
+  const teamsStart=src.indexOf('const TEAMS = [');
+  if(teamsStart===-1){alert('Could not locate TEAMS data in source.');return;}
+  // Find the matching closing `];` — walk char by char counting brackets
+  let depth=0,i=teamsStart,foundOpen=false,teamsEnd=-1;
+  while(i<src.length){
+    if(src[i]==='['){depth++;foundOpen=true;}
+    else if(src[i]===']'){depth--;if(foundOpen&&depth===0){teamsEnd=i+1;break;}}
+    i++;
+  }
+  if(teamsEnd===-1){alert('Could not parse TEAMS array boundaries.');return;}
+
+  const newSrc=src.slice(0,teamsStart)+`const TEAMS = [\n${teamsJs}\n]`+src.slice(teamsEnd);
+
+  const blob=new Blob([newSrc],{type:'text/html'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download='index.html';
+  document.body.appendChild(a);a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
+
 window.addEventListener('DOMContentLoaded',()=>{
+  loadPersistedData();
   if(loadKTCFromCache()&&!ktcCacheIsStale()){
     computeFloorGrades();
   }
