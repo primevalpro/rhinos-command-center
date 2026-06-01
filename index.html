@@ -225,7 +225,7 @@ textarea:focus{outline:none;border-color:#1D9E75}
       <button class="btn btn-secondary btn-sm" onclick="openModal('modalImport')">Import</button>
       <button class="btn btn-copy btn-sm" onclick="copyReassessPrompt()">Copy Re-Assess Prompt</button>
       <button class="btn btn-import btn-sm" onclick="openModal('modalImportResults')">Import Results</button>
-      <span id="ktcStatusBadge" style="font-family:'DM Mono',monospace;font-size:10px;color:#555;display:flex;align-items:center;gap:6px">KTC loading…</span>
+      <span id="ktcStatusBadge" style="font-family:'DM Mono',monospace;font-size:10px;color:#555;display:flex;align-items:center;gap:6px">Values loading…</span>
       <span class="badge-us">brandont1223 · #630</span>
     </div>
   </div>
@@ -290,9 +290,9 @@ textarea:focus{outline:none;border-color:#1D9E75}
 
 <div class="modal-overlay" id="modalKtcImport">
   <div class="modal">
-    <div class="modal-header"><div class="modal-title">Manual KTC Import</div><button class="modal-close" onclick="closeModal('modalKtcImport')">✕</button></div>
-    <p style="font-size:13px;color:#888;margin-bottom:10px;line-height:1.6">Paste KTC player values as JSON. Go to <strong style="color:#ccc">keeptradecut.com</strong>, open browser dev tools → Network tab, filter for "api/players", copy the response JSON, and paste it below.</p>
-    <p style="font-size:11px;color:#555;margin-bottom:14px">Accepts: <code style="color:#4a9ede">[ {"playerName": "CeeDee Lamb", "value": 9200}, ... ]</code> or <code style="color:#4a9ede">{"ceedee lamb": 9200, ...}</code></p>
+    <div class="modal-header"><div class="modal-title">Manual Value Import</div><button class="modal-close" onclick="closeModal('modalKtcImport')">✕</button></div>
+    <p style="font-size:13px;color:#888;margin-bottom:10px;line-height:1.6">Paste FantasyCalc player values as JSON. Go to <strong style="color:#ccc">fantasycalc.com</strong>, open browser dev tools → Network tab, filter for "values/current", copy the response JSON, and paste it below.</p>
+    <p style="font-size:11px;color:#555;margin-bottom:14px">Accepts: <code style="color:#4a9ede">[ {"player": {"name": "CeeDee Lamb"}, "value": 9200}, ... ]</code> or <code style="color:#4a9ede">{"ceedee lamb": 9200, ...}</code></p>
     <textarea id="ktcImportText" rows="10" placeholder="Paste KTC JSON here..."></textarea>
     <div style="display:flex;gap:8px;margin-top:12px">
       <button class="btn btn-primary" onclick="processKtcManualImport()">Import Values</button>
@@ -566,61 +566,44 @@ function ktcCacheIsStale(){
   }catch(e){return true;}
 }
 
+// ── FANTASYCALC VALUE LOADER ──────────────────────────────────────────────────
+// FantasyCalc has a public, CORS-enabled API — no auth, no proxy needed
+const FC_URL='https://api.fantasycalc.com/values/current?isDynasty=true&numQbs=2&ppr=1&numTeams=12';
+
 async function loadKTC(forceRefresh){
   if(ktcLoading)return;
-  // Try cache first (unless force refresh)
   if(!forceRefresh&&loadKTCFromCache()&&!ktcCacheIsStale()){
     updateKTCStatusBadge();
     return;
   }
-  // Load stale cache as fallback so we always have something
   if(!ktcLoaded)loadKTCFromCache();
   ktcLoading=true;
   updateKTCStatusBadge();
 
-  // KTC endpoint candidates — try each in order until one works
-  const KTC_ENDPOINTS=[
-    // Direct API (works when hosted, no CORS issues on GitHub Pages)
-    'https://keeptradecut.com/api/players?format=2',
-    // Alternate direct path used by some community tools
-    'https://keeptradecut.com/api/players',
-    // corsproxy fallback
-    'https://corsproxy.io/?url='+encodeURIComponent('https://keeptradecut.com/api/players?format=2'),
-    // allorigins fallback — returns {contents: "json string"}
-    'https://api.allorigins.win/get?url='+encodeURIComponent('https://keeptradecut.com/api/players?format=2'),
-  ];
-
-  let loaded=false;
-  for(const url of KTC_ENDPOINTS){
-    try{
-      const res=await fetch(url,{signal:AbortSignal.timeout(8000)});
-      if(!res.ok)continue;
-      let data=await res.json();
-      // allorigins wraps in {contents: "..."}
-      if(data&&data.contents){
-        try{data=JSON.parse(data.contents);}catch(e){continue;}
-      }
-      const newValues={};
-      const arr=Array.isArray(data)?data:(data.players||data.data||[]);
-      arr.forEach(p=>{
-        const name=(p.playerName||p.name||'').toLowerCase().trim();
-        const val=p.value??p.overallValue??p.sf_value??null;
+  try{
+    const res=await fetch(FC_URL,{signal:AbortSignal.timeout(10000)});
+    if(!res.ok)throw new Error(`HTTP ${res.status}`);
+    const data=await res.json();
+    const newValues={};
+    if(Array.isArray(data)){
+      data.forEach(entry=>{
+        const name=(entry.player?.name||'').toLowerCase().trim();
+        const val=entry.value??null;
         if(name&&val!=null)newValues[name]=val;
       });
-      if(Object.keys(newValues).length>50){
-        Object.assign(ktcValues,newValues);
-        saveKTCToCache(newValues);
-        ktcLoaded=true;
-        loaded=true;
-        console.log(`KTC loaded from: ${url} (${Object.keys(newValues).length} players)`);
-        break;
-      }
-    }catch(e){
-      console.warn(`KTC endpoint failed (${url}):`,e.message);
     }
+    if(Object.keys(newValues).length>50){
+      Object.assign(ktcValues,newValues);
+      saveKTCToCache(newValues);
+      ktcLoaded=true;
+      console.log(`FantasyCalc loaded: ${Object.keys(newValues).length} players`);
+    } else {
+      throw new Error('Too few players returned');
+    }
+  }catch(e){
+    console.warn('FantasyCalc fetch failed:',e.message);
   }
 
-  if(!loaded)console.warn('All KTC endpoints failed — using cache or manual import');
   ktcLoading=false;
   updateKTCStatusBadge();
 }
@@ -630,11 +613,11 @@ function updateKTCStatusBadge(){
   if(!el)return;
   const age=ktcAgeLabel();
   if(ktcLoading){
-    el.innerHTML='<span style="color:#d4950a">⟳ Fetching KTC…</span>';
+    el.innerHTML='<span style="color:#d4950a">⟳ Fetching values…</span>';
   } else if(ktcLoaded&&age){
-    el.innerHTML=`<span style="color:#1D9E75">KTC ✓ ${age}</span> <button class="btn btn-sm btn-secondary" style="font-size:9px;padding:2px 6px" onclick="loadKTC(true)">Refresh</button> <button class="btn btn-sm btn-secondary" style="font-size:9px;padding:2px 6px" onclick="openModal('modalKtcImport')">Manual Import</button>`;
+    el.innerHTML=`<span style="color:#1D9E75">FC ✓ ${age}</span> <button class="btn btn-sm btn-secondary" style="font-size:9px;padding:2px 6px" onclick="loadKTC(true)">Refresh</button> <button class="btn btn-sm btn-secondary" style="font-size:9px;padding:2px 6px" onclick="openModal('modalKtcImport')">Manual Import</button>`;
   } else {
-    el.innerHTML=`<span style="color:#555">KTC unavailable</span> <button class="btn btn-sm btn-secondary" style="font-size:9px;padding:2px 6px" onclick="loadKTC(true)">Retry</button> <button class="btn btn-sm btn-secondary" style="font-size:9px;padding:2px 6px" onclick="openModal('modalKtcImport')">Manual Import</button>`;
+    el.innerHTML=`<span style="color:#555">Values unavailable</span> <button class="btn btn-sm btn-secondary" style="font-size:9px;padding:2px 6px" onclick="loadKTC(true)">Retry</button> <button class="btn btn-sm btn-secondary" style="font-size:9px;padding:2px 6px" onclick="openModal('modalKtcImport')">Manual Import</button>`;
   }
 }
 
@@ -648,7 +631,8 @@ function processKtcManualImport(){
     const newValues={};
     if(Array.isArray(parsed)){
       parsed.forEach(p=>{
-        const name=(p.playerName||p.name||'').toLowerCase().trim();
+        // FantasyCalc format: {player: {name: "..."}, value: N}
+        const name=(p.player?.name||p.playerName||p.name||'').toLowerCase().trim();
         const val=p.value??p.overallValue??null;
         if(name&&val!=null)newValues[name]=val;
       });
@@ -1509,7 +1493,7 @@ function buildTradeCalc(rhinos,team){
     <div class="trade-calc-header">
       <span style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#ccc">Trade Calculator</span>
       <div style="display:flex;gap:8px;align-items:center">
-        <span style="font-size:10px;color:#444">KTC: ${ktcLoaded?`<span style="color:#1D9E75">\u2713 ${ktcAgeLabel()||'loaded'}</span>`:'<span style="color:#555">unavailable</span>'} \xb7 Pick values are approximate</span>
+        <span style="font-size:10px;color:#444">FC: ${ktcLoaded?`<span style="color:#1D9E75">\u2713 ${ktcAgeLabel()||'loaded'}</span>`:'<span style="color:#555">unavailable</span>'} \xb7 Pick values are approximate</span>
         <button class="btn btn-sm btn-secondary" onclick="clearTradeCalc()">Clear</button>
       </div>
     </div>
