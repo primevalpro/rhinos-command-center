@@ -1,10 +1,8 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
+<html lang="en"><head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Rhinos Dynasty Command Center</title>
-<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&amp;family=Barlow+Condensed:wght@400;500;600;700&amp;family=DM+Mono:wght@400;500&amp;display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:#0c0c0c;color:#e8e6e0;font-family:'Barlow',sans-serif;min-height:100vh}
@@ -254,32 +252,161 @@ textarea:focus{outline:none;border-color:#1D9E75}
       <button class="btn btn-copy btn-sm" onclick="copyReassessPrompt()">Copy Re-Assess Prompt</button>
       <button class="btn btn-import btn-sm" onclick="openModal('modalImportResults')">Import Results</button>
       <button class="btn btn-download btn-sm" onclick="downloadHTML()">⬇ Download HTML</button>
-      <span id="ktcStatusBadge" style="font-family:'DM Mono',monospace;font-size:10px;color:#555;display:flex;align-items:center;gap:6px">Values loading…</span>
+      <span id="ktcStatusBadge" style="font-family:'DM Mono',monospace;font-size:10px;color:#555;display:flex;align-items:center;gap:6px"><span style="color:#1D9E75">FC ✓ updated today</span> <button class="btn btn-sm btn-secondary" style="font-size:9px;padding:2px 6px" onclick="loadKTC(true)">Refresh</button> <button class="btn btn-sm btn-secondary" style="font-size:9px;padding:2px 6px" onclick="openModal('modalKtcImport')">Manual Import</button></span>
       <span class="badge-us">brandont1223 · #630</span>
     </div>
   </div>
   <div class="tabs">
-    <button class="tab active" onclick="showTab('overview',this)">League Overview</button>
+    <button class="tab" onclick="showTab('overview',this)">League Overview</button>
     <button class="tab" onclick="showTab('compare',this)">Team Compare</button>
-    <button class="tab" onclick="showTab('trade',this)">Trade Targets</button>
+    <button class="tab active" onclick="showTab('trade',this)">Trade Targets</button>
     <button class="tab" onclick="showTab('power',this)">Power Rankings</button>
-    <button class="tab" onclick="showTab('age',this)">Age & Draft</button>
+    <button class="tab" onclick="showTab('age',this)">Age &amp; Draft</button>
     <button class="tab" onclick="showTab('roster',this)">Rosters</button>
   </div>
 </div>
 
-<div class="content" id="mainContent"></div>
+<div class="content" id="mainContent"><div class="section-label" style="margin-bottom:12px">Trade targets for Rhinos #630 · Sorted by match quality</div>
+  <div class="card us" style="margin-bottom:16px">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+      <div><div class="section-label" style="margin-bottom:4px">Our needs</div><div class="trade-need"><span class="need-pill">RB proven</span><span class="need-pill">RB1 upside</span></div></div>
+      <div><div class="section-label" style="margin-bottom:4px">Our surplus</div><div class="trade-need"><span class="surplus-pill">WR depth</span><span class="surplus-pill">TE proven</span></div></div>
+    </div>
+    <div class="divider" style="margin:10px 0 8px"></div>
+    <div class="section-label" style="margin-bottom:4px">2027 pick capital</div>
+    <div class="picks-grid"><span class="pick-pill r1">R1</span><span class="pick-pill r2">R2</span><span class="pick-pill r3">R3</span><span class="pick-pill r3">R4</span><span class="pick-pill r3">R5</span><span class="pick-pill r3">R6</span><span class="pick-pill r3">R7</span></div>
+  </div><div class="card" id="tgt-card-duhhh">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:8px">
+        <div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700">Duhhhh</div>
+          <div style="font-family:'DM Mono',monospace;font-size:11px;color:#555;margin-top:2px">●●●●● match · 2027 cap: 2</div>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center"><span class="tag tag-retool">Retool</span> <span class="tag tag-antifragile">antifragile</span>
+          <button class="btn btn-sm btn-secondary" onclick="toggleTradePanel('duhhh')">▼ View Rosters</button>
+        </div>
+      </div>
+      <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px"><span style="font-family:'DM Mono',monospace;font-size:10px;padding:2px 7px;border-radius:3px;background:#3a1510;border:1px solid #d06040;color:#d06040;display:inline-block">sell aging stars</span></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:10px">
+        <div><div class="section-label" style="margin-bottom:4px">We offer</div><div class="trade-need"><span class="surplus-pill">WR depth</span><span class="surplus-pill">QB asset</span><span class="surplus-pill">Draft picks</span></div></div>
+        <div><div class="section-label" style="margin-bottom:4px">We target</div><div class="trade-need"><span class="need-pill">RB proven starter</span></div></div>
+      </div>
+      <div style="font-size:12px;color:#777;line-height:1.55">The richest RB room in the league paired with the worst QB situation. They desperately need a QB — Stafford/Mayfield is a weekly handicap. Willis (functional SF) or Penix (upside play) could be part of a package. Target: James Cook or De'Von Achane for WR depth + QB asset + picks.</div>
+      <div class="divider"></div>
+      <div class="section-label" style="margin-bottom:4px">Their 2027 picks</div>
+      <div class="picks-grid"><span class="pick-pill r3">R5</span><span class="pick-pill r3">R6</span><span class="pick-pill r3">R7</span><span class="pick-pill r3">R7</span></div>
+      <div id="trade-panel-duhhh"></div>
+    </div><div class="card" id="tgt-card-greeneggs">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:8px">
+        <div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700">GreenEggs CNcN</div>
+          <div style="font-family:'DM Mono',monospace;font-size:11px;color:#555;margin-top:2px">●●●●● match · 2027 cap: 5</div>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center"><span class="tag tag-opening">Opening Soon</span> <span class="tag tag-robust">robust</span>
+          <button class="btn btn-sm btn-secondary" onclick="toggleTradePanel('greeneggs')">▼ View Rosters</button>
+        </div>
+      </div>
+      <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px"><span style="font-family:'DM Mono',monospace;font-size:10px;padding:2px 7px;border-radius:3px;background:#1e0a3a;border:1px solid #9b6aee;color:#9b6aee;display:inline-block">buy QB now</span> <span style="font-family:'DM Mono',monospace;font-size:10px;padding:2px 7px;border-radius:3px;background:#1a1a2e;border:1px solid #4a9ede;color:#4a9ede;display:inline-block">2-for-1 upgrade</span> <span style="font-family:'DM Mono',monospace;font-size:10px;padding:2px 7px;border-radius:3px;background:#3a2a08;border:1px solid #d4950a;color:#d4950a;display:inline-block">buy proven RB</span></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:10px">
+        <div><div class="section-label" style="margin-bottom:4px">We offer</div><div class="trade-need"><span class="surplus-pill">QB asset</span><span class="surplus-pill">WR depth</span><span class="surplus-pill">Picks</span></div></div>
+        <div><div class="section-label" style="margin-bottom:4px">We target</div><div class="trade-need"><span class="need-pill">TE or RB proven</span></div></div>
+      </div>
+      <div style="font-size:12px;color:#777;line-height:1.55">S-tier WR room wasted on C-tier QB. Kyle Pitts or RB depth available. A QB asset + picks package for Pitts or Walker/Chase Brown gives them QB breathing room while we address our biggest need.</div>
+      <div class="divider"></div>
+      <div class="section-label" style="margin-bottom:4px">Their 2027 picks</div>
+      <div class="picks-grid"><span class="pick-pill r3">R3</span><span class="pick-pill r3">R4</span><span class="pick-pill r3">R4</span><span class="pick-pill r3">R5</span><span class="pick-pill r3">R6</span><span class="pick-pill r3">R7</span><span class="pick-pill r3">R7</span></div>
+      <div id="trade-panel-greeneggs"></div>
+    </div><div class="card" id="tgt-card-warranted">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:8px">
+        <div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700">When Warrented</div>
+          <div style="font-family:'DM Mono',monospace;font-size:11px;color:#555;margin-top:2px">●●●●○ match · 2027 cap: 14</div>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center"><span class="tag tag-open">Open Now</span> <span class="tag tag-robust">robust</span>
+          <button class="btn btn-sm btn-secondary" onclick="toggleTradePanel('warranted')">▼ View Rosters</button>
+        </div>
+      </div>
+      <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px"><span style="font-family:'DM Mono',monospace;font-size:10px;padding:2px 7px;border-radius:3px;background:#0a1e3a;border:1px solid #4a9ede;color:#4a9ede;display:inline-block">win-now swap</span></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:10px">
+        <div><div class="section-label" style="margin-bottom:4px">We offer</div><div class="trade-need"><span class="surplus-pill">WR depth</span><span class="surplus-pill">Picks</span></div></div>
+        <div><div class="section-label" style="margin-bottom:4px">We target</div><div class="trade-need"><span class="need-pill">RB proven</span></div></div>
+      </div>
+      <div style="font-size:12px;color:#777;line-height:1.55">Deep at RB and TE but thin at WR. We're the exact opposite. A Rhinos WR (Smith, McConkey, or Noel breakout) for a proven RB swap is clean and immediately improves both teams.</div>
+      <div class="divider"></div>
+      <div class="section-label" style="margin-bottom:4px">Their 2027 picks</div>
+      <div class="picks-grid"><span class="pick-pill r1">R1</span><span class="pick-pill r3">R3</span><span class="pick-pill r3">R4</span><span class="pick-pill r3">R5</span><span class="pick-pill r3">R6</span><span class="pick-pill r3">R7</span></div>
+      <div id="trade-panel-warranted"></div>
+    </div><div class="card" id="tgt-card-depot">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:8px">
+        <div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700">Dynasty Depot</div>
+          <div style="font-family:'DM Mono',monospace;font-size:11px;color:#555;margin-top:2px">●●●○○ match · 2027 cap: 36</div>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center"><span class="tag tag-opening">Opening Soon</span> <span class="tag tag-robust">robust</span>
+          <button class="btn btn-sm btn-secondary" onclick="toggleTradePanel('depot')">▼ View Rosters</button>
+        </div>
+      </div>
+      <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px"><span style="font-family:'DM Mono',monospace;font-size:10px;padding:2px 7px;border-radius:3px;background:#0a3d28;border:1px solid #1D9E75;color:#1D9E75;display:inline-block">sell for picks</span> <span style="font-family:'DM Mono',monospace;font-size:10px;padding:2px 7px;border-radius:3px;background:#1a1a2e;border:1px solid #4a9ede;color:#4a9ede;display:inline-block">2-for-1 upgrade</span> <span style="font-family:'DM Mono',monospace;font-size:10px;padding:2px 7px;border-radius:3px;background:#3a2a08;border:1px solid #d4950a;color:#d4950a;display:inline-block">buy proven RB</span></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:10px">
+        <div><div class="section-label" style="margin-bottom:4px">We offer</div><div class="trade-need"><span class="surplus-pill">TE depth</span><span class="surplus-pill">WR depth</span><span class="surplus-pill">Picks</span></div></div>
+        <div><div class="section-label" style="margin-bottom:4px">We target</div><div class="trade-need"><span class="need-pill">RB proven</span></div></div>
+      </div>
+      <div style="font-size:12px;color:#777;line-height:1.55">Burrow/Lawrence is solid but they lack a TE1 upgrade path. Isaiah Likely has standalone TE appeal. Taylor or Etienne at risk — monitor for injury-motivated deals mid-season.</div>
+      <div class="divider"></div>
+      <div class="section-label" style="margin-bottom:4px">Their 2027 picks</div>
+      <div class="picks-grid"><span class="pick-pill r1">R1</span><span class="pick-pill r1">R1</span><span class="pick-pill r2">R2</span><span class="pick-pill r2">R2</span><span class="pick-pill r3">R3</span><span class="pick-pill r3">R3</span><span class="pick-pill r3">R5</span><span class="pick-pill r3">R6</span><span class="pick-pill r3">R7</span></div>
+      <div id="trade-panel-depot"></div>
+    </div><div class="card" id="tgt-card-third">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:8px">
+        <div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700">The Third</div>
+          <div style="font-family:'DM Mono',monospace;font-size:11px;color:#555;margin-top:2px">●●●○○ match · 2027 cap: 19</div>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center"><span class="tag tag-open">Open Now</span> <span class="tag tag-antifragile">antifragile</span>
+          <button class="btn btn-sm btn-secondary" onclick="toggleTradePanel('third')">▼ View Rosters</button>
+        </div>
+      </div>
+      <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px"><span style="font-family:'DM Mono',monospace;font-size:10px;padding:2px 7px;border-radius:3px;background:#1a1a2e;border:1px solid #4a9ede;color:#4a9ede;display:inline-block">2-for-1 upgrade</span> <span style="font-family:'DM Mono',monospace;font-size:10px;padding:2px 7px;border-radius:3px;background:#3a2a08;border:1px solid #d4950a;color:#d4950a;display:inline-block">buy proven RB</span></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:10px">
+        <div><div class="section-label" style="margin-bottom:4px">We offer</div><div class="trade-need"><span class="surplus-pill">WR1 + picks</span></div></div>
+        <div><div class="section-label" style="margin-bottom:4px">We target</div><div class="trade-need"><span class="need-pill">QB1 upgrade</span></div></div>
+      </div>
+      <div style="font-size:12px;color:#777;line-height:1.55">Allen/Hurts are the most tradeable QBs in the league. Their WR/TE room is a genuine weakness. A Hurts acquisition would transform our floor.</div>
+      <div class="divider"></div>
+      <div class="section-label" style="margin-bottom:4px">Their 2027 picks</div>
+      <div class="picks-grid"><span class="pick-pill r1">R1</span><span class="pick-pill r2">R2</span><span class="pick-pill r3">R3</span><span class="pick-pill r3">R4</span><span class="pick-pill r3">R5</span><span class="pick-pill r3">R6</span><span class="pick-pill r3">R7</span></div>
+      <div id="trade-panel-third"></div>
+    </div><div class="card" id="tgt-card-meatshack">
+      <div style="display:flex;align-items:flex-start;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:8px">
+        <div>
+          <div style="font-family:'Barlow Condensed',sans-serif;font-size:16px;font-weight:700">Meat Shack</div>
+          <div style="font-family:'DM Mono',monospace;font-size:11px;color:#555;margin-top:2px">●●●○○ match · 2027 cap: 34</div>
+        </div>
+        <div style="display:flex;gap:6px;align-items:center"><span class="tag tag-open">Open Now</span> <span class="tag tag-robust">robust</span>
+          <button class="btn btn-sm btn-secondary" onclick="toggleTradePanel('meatshack')">▼ View Rosters</button>
+        </div>
+      </div>
+      <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px"><span style="font-family:'DM Mono',monospace;font-size:10px;padding:2px 7px;border-radius:3px;background:#0a3d28;border:1px solid #1D9E75;color:#1D9E75;display:inline-block">sell for picks</span> <span style="font-family:'DM Mono',monospace;font-size:10px;padding:2px 7px;border-radius:3px;background:#1a1a2e;border:1px solid #4a9ede;color:#4a9ede;display:inline-block">2-for-1 upgrade</span> <span style="font-family:'DM Mono',monospace;font-size:10px;padding:2px 7px;border-radius:3px;background:#3a2a08;border:1px solid #d4950a;color:#d4950a;display:inline-block">buy proven RB</span></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:10px">
+        <div><div class="section-label" style="margin-bottom:4px">We offer</div><div class="trade-need"><span class="surplus-pill">QB asset</span><span class="surplus-pill">WR depth</span><span class="surplus-pill">Picks</span></div></div>
+        <div><div class="section-label" style="margin-bottom:4px">We target</div><div class="trade-need"><span class="need-pill">TE elite (Bowers)</span></div></div>
+      </div>
+      <div style="font-size:12px;color:#777;line-height:1.55">Bowers + Harrison + G. Wilson are elite assets but Rodgers at SF kills the floor weekly. If Caleb Williams struggles, they may want to move Bowers. We offer WR depth + picks.</div>
+      <div class="divider"></div>
+      <div class="section-label" style="margin-bottom:4px">Their 2027 picks</div>
+      <div class="picks-grid"><span class="pick-pill r1">R1</span><span class="pick-pill r1">R1</span><span class="pick-pill r2">R2</span><span class="pick-pill r2">R2</span><span class="pick-pill r3">R3</span><span class="pick-pill r3">R4</span><span class="pick-pill r3">R5</span><span class="pick-pill r3">R6</span><span class="pick-pill r3">R7</span></div>
+      <div id="trade-panel-meatshack"></div>
+    </div></div>
 
 <!-- MODALS -->
 <div class="modal-overlay" id="modalImport">
   <div class="modal">
-    <div class="modal-header"><div class="modal-title">Import FFPC Data</div><button class="modal-close" onclick="closeModal('modalImport')">&#x2715;</button></div>
+    <div class="modal-header"><div class="modal-title">Import FFPC Data</div><button class="modal-close" onclick="closeModal('modalImport')">✕</button></div>
     <p style="font-size:13px;color:#888;margin-bottom:14px;line-height:1.6">Upload the CSV export from FFPC (the full player list with ownership). Free agents are ignored automatically.</p>
     <div style="margin-bottom:16px">
       <div class="section-label" style="margin-bottom:8px">Import Mode</div>
       <div style="display:flex;gap:8px">
         <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:8px 14px;background:#161616;border:1px solid #2a2a2a;border-radius:6px;flex:1" id="modeRosterLabel">
-          <input type="radio" name="importMode" value="roster" checked onchange="updateImportModeUI()" style="accent-color:#1D9E75">
+          <input type="radio" name="importMode" value="roster" checked="" onchange="updateImportModeUI()" style="accent-color:#1D9E75">
           <div>
             <div style="font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:13px;color:#ccc">Rosters Only</div>
             <div style="font-size:11px;color:#555;margin-top:2px">Update player rosters — fast parse, skips stat columns</div>
@@ -301,7 +428,7 @@ textarea:focus{outline:none;border-color:#1D9E75}
     <div style="margin-bottom:12px">
       <div class="section-label" style="margin-bottom:8px">CSV File</div>
       <label style="display:flex;align-items:center;gap:10px;padding:12px 16px;background:#111;border:1px dashed #333;border-radius:6px;cursor:pointer" id="csvDropLabel">
-        <span style="font-size:18px">&#x1F4C4;</span>
+        <span style="font-size:18px">📄</span>
         <div>
           <div style="font-size:13px;color:#ccc" id="csvFileLabel">Choose CSV file or click to browse</div>
           <div style="font-size:11px;color:#555;margin-top:2px">FFPC player export (.csv)</div>
@@ -313,7 +440,7 @@ textarea:focus{outline:none;border-color:#1D9E75}
       <button class="btn btn-primary" onclick="processCsvImport()">Import</button>
       <button class="btn btn-secondary" onclick="closeModal('modalImport')">Cancel</button>
     </div>
-    <div id="importStatus" style="margin-top:10px;font-size:12px;color:#1D9E75"></div>
+    <div id="importStatus" style="margin-top:10px;font-size:12px;color:#1D9E75"><span style="color:#1D9E75">Updated rosters for 12 teams (240 players). Use Copy Re-Assess Prompt to refresh grades.</span></div>
   </div>
 </div>
 
@@ -333,14 +460,14 @@ textarea:focus{outline:none;border-color:#1D9E75}
 
 <div class="modal-overlay" id="modalImportResults">
   <div class="modal">
-    <div class="modal-header"><div class="modal-title">Import Re-Assess Results</div><button class="modal-close" onclick="closeModal('modalImportResults')">&#x2715;</button></div>
+    <div class="modal-header"><div class="modal-title">Import Re-Assess Results</div><button class="modal-close" onclick="closeModal('modalImportResults')">✕</button></div>
     <p style="font-size:13px;color:#888;margin-bottom:14px;line-height:1.6">Paste the JSON response from Claude after running the Re-Assess prompt. All grades, windows, and philosophy summaries will update automatically.</p>
     <textarea id="resultsImportText" rows="12" placeholder="Paste Claude JSON response here..."></textarea>
     <div style="display:flex;gap:8px;margin-top:12px">
       <button class="btn btn-primary" onclick="processImportResults()">Apply Results</button>
       <button class="btn btn-secondary" onclick="closeModal('modalImportResults')">Cancel</button>
     </div>
-    <div id="resultsImportStatus" style="margin-top:8px;font-size:12px;color:#1D9E75"></div>
+    <div id="resultsImportStatus" style="margin-top:8px;font-size:12px;color:#1D9E75"><span style="color:#1D9E75">Updated 12 teams successfully.</span></div>
   </div>
 </div>
 
@@ -348,185 +475,196 @@ textarea:focus{outline:none;border-color:#1D9E75}
 // ── DATA ──────────────────────────────────────────────────────────────────────
 const TEAMS = [
   {
-    id:'rhinos',name:'Rhinos #630',owner:'brandont1223',us:true,rostered:20,
-    qb:{floor:'B',ceil:'S',prob:'High',frag:'robust',starters:['Drake Maye (NE)'],depth:['Malik Willis (MIA)','Michael Penix (ATL)']},
-    rb:{floor:'C',ceil:'A',prob:'High',frag:'antifragile',starters:['Jacory Croskey-Merritt (WAS)','Zach Charbonnet (SEA)'],depth:['Tyler Allgeier (ARI)','Braelon Allen (NYJ)','Emmett Johnson (KC)','Jordan James (SF)','Kaelon Black (SF)','Chris Brooks (GB)']},
-    wr:{floor:'S',ceil:'S',prob:'High',frag:'robust',starters:['CeeDee Lamb (DAL)','Nico Collins (HOU)','Rashee Rice (KC)'],depth:['DeVonta Smith (PHI)','Ladd McConkey (LAC)','Chris Bell (MIA)','Jaylin Noel (HOU)']},
-    te:{floor:'A',ceil:'S',prob:'Medium',frag:'robust',starters:['Harold Fannin (CLE)'],depth:['Isaiah Likely (NYG)']},
-    flex:{floor:'A',ceil:'S',prob:'High',frag:'antifragile',note:'WR/TE overflow driven'},
-    flexDepth:{floor:'A',ceil:'S',prob:'High',frag:'antifragile',note:'RB depth inherits league injuries'},
-    overall:{floor:'A',ceil:'S',delta:'moderate',frag:'antifragile'},
-    window:'open',windowNote:'Maye Year 3 + elite WR corps. Window opens fully when 1-2 RBs emerge.',primeConcern:false,
-    philosophy:'The most deliberately constructed roster in the league. Dominant at every pass-catching position with a franchise QB in Maye, yet intentionally thin at RB week 1. The antifragile backfield is the core bet — as injuries accumulate this roster gets stronger. If two or three depth backs inherit roles mid-season, this becomes the best team in the league.',
-    needs:['RB proven starter'],surplus:['WR depth','TE upside','Draft picks'],
+    id:'rhinos',name:'Rhinos #630',owner:'brandont1223',us:true,rostered:22,
+    qb:{floor:'S',ceil:'S',prob:'High',frag:'robust',starters:['Drake Maye (NE)','Malik Willis (MIA)'],depth:['Michael Penix (ATL)']},
+    rb:{floor:'C',ceil:'B',prob:'Medium',frag:'robust',starters:['Zach Charbonnet (SEA)','Jacory Croskey-Merritt (WAS)'],depth:['Braelon Allen (NYJ)','Tyler Allgeier (ARI)','Emmett Johnson (KC)','Malik Davis (DAL)','Chris Brooks (GB)','Justice Hill (BAL)','Jordan James (SF)','Kaelon Black (SF)']},
+    wr:{floor:'A',ceil:'S',prob:'High',frag:'antifragile',starters:['CeeDee Lamb (DAL)','Rashee Rice (KC)','Nico Collins (HOU)'],depth:['Ladd McConkey (LAC)','DeVonta Smith (PHI)','Chris Bell (MIA)','Jaylin Noel (HOU)']},
+    te:{floor:'B',ceil:'S',prob:'High',frag:'robust',starters:['Harold Fannin (CLE)'],depth:['Isaiah Likely (NYG)']},
+    flex:{floor:'A',ceil:'S',prob:'High',frag:'antifragile',note:'WR overflow is elite; Ladd McConkey and DeVonta Smith provide A-tier flex depth'},
+    flexDepth:{floor:'A',ceil:'A',prob:'High',frag:'robust',note:'RB depth is volume-heavy but unproven; WR/TE depth elevates the pool'},
+    overall:{floor:'A',ceil:'S',delta:'moderate',frag:'robust'},
+    window:'open',windowNote:'Drake Maye entering prime; WR corps among league\'s best',primeConcern:false,
+    philosophy:'The Rhinos are constructed around a cornerstone QB in Drake Maye with one of the deepest and most talented WR rooms in the league — CeeDee Lamb, Nico Collins, Rashee Rice, and Ladd McConkey is a genuinely elite four-deep group. Harold Fannin Jr. is confirmed as the Browns\' uncontested TE1 heading into Year 2 after Njoku departed in free agency, giving him a clear opportunity to become a top-3 fantasy TE in a full-season role. The RB room is the roster\'s soft spot: Zach Charbonnet is a capable producer but JCM heads into 2026 as the Commanders\' RB1 in what projects as a committee situation with Rachaad White, limiting his ceiling. The flex depth pool is antifragile thanks to WR overflow — DeVonta Smith and Ladd McConkey alone are premium league-winning pieces on most rosters.',
+    needs:['RB proven','RB1 upside'],surplus:['WR depth','TE proven'],
     age:{QB:23,RB:23,WR:26,TE:24},
     picks2027:['R1','R2','R3','R4','R5','R6','R7'],
-    powerRank:2,powerRationale:'Elite WR/TE corps with franchise QB. Up: RB depth inherits roles. Down: Maye regression or key WR injury.'
+    powerRank:3,powerRationale:'Elite QB plus best WR room in league. Up: Fannin TE1 breakout. Down: RB room fails to produce starter-level upside.'
   },
   {
-    id:'bookends',name:'Buffalo Bookends 30',us:false,rostered:19,
-    qb:{floor:'B',ceil:'B',prob:'Low',frag:'fragile',starters:['Dak Prescott (DAL)'],depth:['Tua Tagovailoa (ATL)','Fernando Mendoza (LV)']},
-    rb:{floor:'B',ceil:'A',prob:'Medium',frag:'robust',starters:['TreVeyon Henderson (NE)','Chuba Hubbard (CAR)'],depth:['Rico Dowdle (PIT)','Kyle Monangai (CHI)','Isiah Pacheco (DET)']},
-    wr:{floor:'A',ceil:'A',prob:'High',frag:'robust',starters:['Amon-Ra St. Brown (DET)','Emeka Egbuka (TB)','Khalil Shakir (BUF)'],depth:['Jayden Higgins (HOU)','Michael Wilson (ARI)','Isaac TeSlaa (DET)','Elijah Sarratt (BAL)']},
-    te:{floor:'S',ceil:'S',prob:'High',frag:'antifragile',starters:['Trey McBride (ARI)'],depth:['Dalton Kincaid (BUF)','Kenyon Sadiq (NYJ)','David Njoku (LAC)']},
-    flex:{floor:'A',ceil:'A',prob:'High',frag:'robust',note:'TE room overflows into flex'},
-    flexDepth:{floor:'A',ceil:'S',prob:'High',frag:'robust',note:'Deep WR + TE stack'},
-    overall:{floor:'A',ceil:'A',delta:'minimal',frag:'robust'},
-    window:'open',windowNote:'Flex/TE luxurious but QB cap limits ceiling.',primeConcern:false,
-    philosophy:'An elite TE room unmatched in the league combined with a strong WR corps makes the flex situation genuinely luxurious. The QB room is the clear liability — Prescott and Tua are not difference-makers in superflex. Upgrading at QB would make this a top-2 roster.',
-    needs:['QB upgrade'],surplus:['TE depth','WR depth'],
+    id:'bookends',name:'Buffalo Bookends 30',owner:'',us:false,rostered:21,
+    qb:{floor:'A',ceil:'A',prob:'High',frag:'robust',starters:['Dak Prescott (DAL)','Fernando Mendoza (LV)'],depth:['Tua Tagovailoa (ATL)']},
+    rb:{floor:'C',ceil:'A',prob:'Medium',frag:'robust',starters:['TreVeyon Henderson (NE)','Rico Dowdle (PIT)'],depth:['Kyle Monangai (CHI)','Chuba Hubbard (CAR)','Isiah Pacheco (DET)']},
+    wr:{floor:'B',ceil:'A',prob:'High',frag:'antifragile',starters:['Brown Amon-Ra St. (DET)','Emeka Egbuka (TB)','Michael Wilson (ARI)'],depth:['Khalil Shakir (BUF)','Jayden Higgins (HOU)','Elijah Sarratt (BAL)','Keon Coleman (BUF)','Isaac TeSlaa (DET)']},
+    te:{floor:'S',ceil:'S',prob:'High',frag:'antifragile',starters:['Trey McBride (ARI)'],depth:['Kenyon Sadiq (NYJ)','Dalton Kincaid (BUF)','David Njoku (LAC)','Elijah Arroyo (SEA)']},
+    flex:{floor:'A',ceil:'A',prob:'High',frag:'antifragile',note:'Deep WR overflow with Egbuka/Shakir/Higgins plus multiple TE options'},
+    flexDepth:{floor:'A',ceil:'A',prob:'High',frag:'antifragile',note:'Kenyon Sadiq and Dalton Kincaid provide genuine TE antifragility; WR depth is real'},
+    overall:{floor:'A',ceil:'A',delta:'moderate',frag:'antifragile'},
+    window:'open',windowNote:'Trey McBride anchors a well-balanced roster with real depth',primeConcern:false,
+    philosophy:'Bookends are built around a genuine TE premium weapon in Trey McBride, who remains the consensus TE1 entering 2026 and is in an elite passing offense. The QB room is interesting — Mendoza\'s FC value has risen sharply and Dak remains a viable SF starter, though both face age and injury questions. RB is average with Henderson and Dowdle as a functional committee; the WR corps is strong with Egbuka projecting as a top-30 WR in his second year with Tampa. The TE depth is genuinely antifragile: Kenyon Sadiq offers handcuff upside for McBride, while Arroyo represents competition/opportunity upside in a pass-heavy system. This roster can compete in all formats.',
+    needs:['RB elite upside','QB long-term'],surplus:['TE depth','WR depth'],
     age:{QB:32,RB:25,WR:26,TE:27},
-    picks2027:['R1','R2','R3','R4','R4','R5','R6']
+    picks2027:['R1','R2','R3','R4','R4','R5','R6'],
+    powerRank:6,powerRationale:'McBride and Egbuka are proven weapons with real depth behind them. Up: Mendoza emerges as elite SF. Down: Henderson regresses in committee.'
   },
   {
-    id:'wheel',name:'Dbls Rt. 92 A Wheel',us:false,rostered:19,
-    qb:{floor:'S',ceil:'S',prob:'High',frag:'robust',starters:['Patrick Mahomes (KC)'],depth:['Jordan Love (GB)','C.J. Stroud (HOU)']},
-    rb:{floor:'A',ceil:'A',prob:'High',frag:'robust',starters:['Bucky Irving (TB)','David Montgomery (HOU)'],depth:['Tony Pollard (TEN)','Tyrone Tracy (NYG)','Woody Marks (HOU)','Tyjae Spears (TEN)','Mike Washington (LV)']},
-    wr:{floor:'A',ceil:'S',prob:'High',frag:'robust',starters:['Jaxon Smith-Njigba (SEA)','Rome Odunze (CHI)','Brian Thomas (JAC)'],depth:['Jordan Addison (MIN)','Xavier Worthy (KC)','Jordyn Tyson (NO)']},
-    te:{floor:'B',ceil:'B',prob:'Low',frag:'robust',starters:['T.J. Hockenson (MIN)'],depth:['Brenton Strange (JAC)','Greg Dulcich (MIA)']},
-    flex:{floor:'A',ceil:'S',prob:'High',frag:'robust',note:'Young WR room drives upside'},
-    flexDepth:{floor:'A',ceil:'A',prob:'High',frag:'robust',note:'Deep RB + WR overflow'},
-    overall:{floor:'A',ceil:'S',delta:'moderate',frag:'robust'},
-    window:'open',windowNote:'Most complete roster. Window is now and multi-year.',primeConcern:false,
-    philosophy:'The most complete roster in the league on paper. Mahomes at QB, Love at SF, a deep RB room, an ascending WR group. No single elite position but no real weaknesses either. Best team to bet on for consistent weekly production from week 1 through playoffs.',
-    needs:['TE1 upgrade'],surplus:['QB depth','RB depth','WR depth'],
+    id:'wheel',name:'Dbls Rt. 92 A Wheel',owner:'',us:false,rostered:19,
+    qb:{floor:'A',ceil:'S',prob:'High',frag:'robust',starters:['Patrick Mahomes (KC)','Jordan Love (GB)'],depth:['C.J. Stroud (HOU)']},
+    rb:{floor:'C',ceil:'B',prob:'Medium',frag:'robust',starters:['Bucky Irving (TB)','Woody Marks (HOU)'],depth:['Tony Pollard (TEN)','David Montgomery (HOU)','Tyjae Spears (TEN)','Tyrone Tracy (NYG)','Mike Washington (LV)']},
+    wr:{floor:'A',ceil:'S',prob:'High',frag:'antifragile',starters:['Jaxon Smith-Njigba (SEA)','Brian Thomas (JAC)','Jordyn Tyson (NO)'],depth:['Rome Odunze (CHI)','Jordan Addison (MIN)','Xavier Worthy (KC)']},
+    te:{floor:'C',ceil:'C',prob:'Low',frag:'fragile',starters:['Brenton Strange (JAC)'],depth:['T.J. Hockenson (MIN)','Greg Dulcich (MIA)']},
+    flex:{floor:'A',ceil:'A',prob:'High',frag:'robust',note:'WR depth overflow from JSN/Thomas/Tyson plus Odunze and Addison'},
+    flexDepth:{floor:'A',ceil:'A',prob:'High',frag:'robust',note:'Rome Odunze, Jordan Addison provide legitimate WR2 upside as depth pieces'},
+    overall:{floor:'B',ceil:'A',delta:'high',frag:'robust'},
+    window:'open',windowNote:'Mahomes-Love-Stroud QB room is historically deep; TE is the fatal flaw',primeConcern:false,
+    philosophy:'The Wheel boasts the most elite QB room in the league — Mahomes, Love, and Stroud are three bonafide SF1/SF2 options — and a WR corps headlined by JSN plus rookie Jordyn Tyson, who was taken 8th overall by New Orleans and enters a pass-heavy offense with clear target share upside. The fatal flaw is TE: Brenton Strange is a low-ceiling streamer in Jacksonville\'s run-heavy tendencies, and Hockenson\'s injury history makes the position genuinely fragile. RB is functional but unspectacular with Irving and Marks as a workable committee. This roster can contend immediately because of QB value alone, but the TE situation will cost points weekly and is a clear acquisition target.',
+    needs:['TE proven','RB upside'],surplus:['QB depth','WR depth'],
     age:{QB:30,RB:27,WR:24,TE:29},
-    picks2027:['R1','R2','R3','R4','R5','R6','R7']
+    picks2027:['R1','R2','R3','R4','R5','R6','R7'],
+    powerRank:4,powerRationale:'Best QB room in league anchors immediate contention. Up: Tyson emerges as WR1 in NO. Down: TE position costs 4-6 pts weekly and stunts ceiling.'
   },
   {
-    id:'saltpond',name:'Salt Pond Sun & Sand',us:false,rostered:18,
-    qb:{floor:'B',ceil:'B',prob:'Low',frag:'fragile',starters:['Jared Goff (DET)'],depth:['Kyler Murray (MIN)','Sam Darnold (SEA)']},
-    rb:{floor:'S',ceil:'S',prob:'High',frag:'fragile',starters:['Christian McCaffrey (SF)','Ashton Jeanty (LV)'],depth:["D'Andre Swift (CHI)",'Jadarian Price (SEA)','Alvin Kamara (NO)','Kaleb Johnson (PIT)']},
-    wr:{floor:'A',ceil:'A',prob:'High',frag:'robust',starters:['Drake London (ATL)','George Pickens (DAL)','Zay Flowers (BAL)'],depth:['DK Metcalf (PIT)','Chris Godwin (TB)','KC Concepcion (CLE)','Tre Tucker (LV)']},
-    te:{floor:'A',ceil:'A',prob:'High',frag:'fragile',starters:['George Kittle (SF)'],depth:['Juwan Johnson (NO)']},
-    flex:{floor:'A',ceil:'S',prob:'High',frag:'fragile',note:'RB elite overflow into flex'},
-    flexDepth:{floor:'B',ceil:'B',prob:'Low',frag:'fragile',note:'Thin beyond starters'},
-    overall:{floor:'A',ceil:'A',delta:'minimal',frag:'fragile'},
-    window:'retool',windowNote:'CMC age 29, Kittle 32. Stars near/past prime.',primeConcern:true,
-    philosophy:'CMC and Jeanty is an extraordinary RB starting duo. But the ceiling is capped by a QB room that\'s never a difference-maker. At only 18 rostered the depth is thin. Needs its stars healthy all season. CMC and Kittle aging means the window is narrowing quickly.',
-    needs:['QB upgrade','depth','youth'],surplus:['RB starters'],
+    id:'saltpond',name:'Salt Pond Sun & Sand',owner:'',us:false,rostered:19,
+    qb:{floor:'B',ceil:'B',prob:'Medium',frag:'robust',starters:['Jared Goff (DET)','Sam Darnold (SEA)'],depth:['Kyler Murray (MIN)']},
+    rb:{floor:'A',ceil:'A',prob:'High',frag:'robust',starters:['Christian McCaffrey (SF)','Ashton Jeanty (LV)'],depth:['D\'Andre Swift (CHI)','Jadarian Price (SEA)','Alvin Kamara (NO)','Kaleb Johnson (PIT)']},
+    wr:{floor:'A',ceil:'A',prob:'High',frag:'robust',starters:['Drake London (ATL)','George Pickens (DAL)','Zay Flowers (BAL)'],depth:['DK Metcalf (PIT)','Chris Godwin (TB)','KC Concepcion (CLE)','Tre Tucker (LV)','Malik Washington (MIA)']},
+    te:{floor:'C',ceil:'C',prob:'Low',frag:'fragile',starters:['Juwan Johnson (NO)'],depth:['George Kittle (SF)']},
+    flex:{floor:'A',ceil:'A',prob:'High',frag:'robust',note:'WR overflow strong; KC Concepcion and DK Metcalf provide legitimate flex options'},
+    flexDepth:{floor:'B',ceil:'B',prob:'Low',frag:'robust',note:'RB depth functional with Swift and Price; WR depth solid'},
+    overall:{floor:'B',ceil:'A',delta:'high',frag:'robust'},
+    window:'open',windowNote:'McCaffrey plus Jeanty is a generational RB pairing; QB is the ceiling cap',primeConcern:true,
+    philosophy:'Salt Pond has the best RB room in the league — McCaffrey in Seattle\'s offense and Ashton Jeanty, the consensus RB2 in the 2026 class, give them a 1-2 punch with Jadarian Price (first-round Seattle pick) waiting behind. The WR corps is strong with London, Pickens, and Flowers all in their primes. The TE room is a real problem: Juwan Johnson and Kittle (aging) give them almost no TE premium upside, and the position will be a consistent point deficit in a TE-premium format. The QB room of Goff/Darnold/Murray is average — enough to be competitive but no ceiling. Prime concern is triggered by McCaffrey\'s age and injury history eating into the window.',
+    needs:['TE proven','QB elite'],surplus:['RB depth','WR starters'],
     age:{QB:31,RB:29,WR:26,TE:32},
-    picks2027:['R1','R2','R2','R3','R4','R5','R7']
+    picks2027:['R1','R2','R2','R3','R4','R5','R7'],
+    powerRank:5,powerRationale:'Elite RB room and strong WRs but blocked by weak QB and TE position. Up: Murray returns to elite form. Down: McCaffrey injury resets window.'
   },
   {
-    id:'steelhawks',name:'Steelhawks',us:false,rostered:16,
-    qb:{floor:'S',ceil:'S',prob:'High',frag:'robust',starters:['Lamar Jackson (BAL)'],depth:['Jayden Daniels (WAS)','Deshaun Watson (CLE)']},
-    rb:{floor:'A',ceil:'A',prob:'High',frag:'robust',starters:['Jeremiyah Love (ARI)','Rhamondre Stevenson (NE)'],depth:['J.K. Dobbins (DEN)','Jonah Coleman (DEN)']},
-    wr:{floor:'B',ceil:'A',prob:'Medium',frag:'fragile',starters:['Brandon Aiyuk (SF)','Travis Hunter (JAC)','Josh Downs (IND)'],depth:['Jalen McMillan (TB)','Alec Pierce (IND)','Tory Horton (SEA)']},
-    te:{floor:'A',ceil:'A',prob:'High',frag:'robust',starters:['Colston Loveland (CHI)'],depth:['AJ Barner (SEA)','Jake Tonges (SF)']},
-    flex:{floor:'A',ceil:'A',prob:'High',frag:'robust',note:'QB/RB strength elevates flex floor'},
-    flexDepth:{floor:'B',ceil:'B',prob:'Low',frag:'fragile',note:'Thin at 16 rostered'},
-    overall:{floor:'A',ceil:'A',delta:'minimal',frag:'robust'},
-    window:'open',windowNote:'Jackson/Daniels duo is terrifying. Thin at 16 rostered but consistent.',primeConcern:false,
-    philosophy:'Jackson and Daniels at QB/SF is arguably the most terrifying position group in the league. Well-rounded at only 16 rostered. Doesn\'t have the ceiling of elite rosters but has fewer ways to lose a week — a consistent contender all season.',
-    needs:['WR depth','roster depth'],surplus:['QB value'],
+    id:'steelhawks',name:'Steelhawks',owner:'',us:false,rostered:18,
+    qb:{floor:'S',ceil:'S',prob:'High',frag:'robust',starters:['Lamar Jackson (BAL)','Jayden Daniels (WAS)'],depth:['Deshaun Watson (CLE)']},
+    rb:{floor:'B',ceil:'S',prob:'High',frag:'robust',starters:['Jeremiyah Love (ARI)','Rhamondre Stevenson (NE)'],depth:['Jonah Coleman (DEN)','Trey Benson (ARI)','J.K. Dobbins (DEN)','Damien Martinez (GB)']},
+    wr:{floor:'B',ceil:'B',prob:'Medium',frag:'robust',starters:['Travis Hunter (JAC)','Alec Pierce (IND)','Josh Downs (IND)'],depth:['Brandon Aiyuk (SF)','Jalen McMillan (TB)','Tory Horton (SEA)']},
+    te:{floor:'A',ceil:'S',prob:'High',frag:'robust',starters:['Colston Loveland (CHI)'],depth:['AJ Barner (SEA)','Jake Tonges (SF)']},
+    flex:{floor:'C',ceil:'A',prob:'High',frag:'robust',note:'WR/TE overflow modest; Aiyuk and McMillan offer competition/opportunity upside'},
+    flexDepth:{floor:'B',ceil:'B',prob:'Low',frag:'robust',note:'Brandon Aiyuk\'s opportunity upside in a new situation; Jalen McMillan slot target share'},
+    overall:{floor:'A',ceil:'S',delta:'moderate',frag:'robust'},
+    window:'open',windowNote:'Lamar, Daniels, Love, and Loveland form a championship-grade core',primeConcern:false,
+    philosophy:'Steelhawks may be the best-constructed dynasty roster in the league. Lamar Jackson and Jayden Daniels give them two legitimate MVP-tier QBs; Jeremiyah Love went 3rd overall to Arizona and enters a LaFleur/Hackett offense with immediate three-down starter potential, while Loveland\'s trajectory from the back half of 2025 through the Bears\' playoff run makes him a consensus TE3 with top-3 ceiling in dynasty. The WR room is the relative weakness — Travis Hunter\'s role is shifting to primary CB in 2026, significantly reducing his fantasy floor as a part-time WR. Alec Pierce and Josh Downs are functional but not elite. Brandon Aiyuk is a legitimate opportunity upside play if he finds consistent usage. This roster is built to win for the next 4-5 years.',
+    needs:['WR elite proven','WR depth'],surplus:['QB depth','TE elite','RB elite'],
     age:{QB:28,RB:24,WR:25,TE:24},
-    picks2027:['R1','R2','R3','R4','R5','R6','R7']
+    picks2027:['R1','R2','R3','R4','R5','R6','R7'],
+    powerRank:1,powerRationale:'Lamar plus Daniels plus Love plus Loveland is the deepest elite-tier core in league. Up: Hunter refocuses on WR. Down: WR room underperforms without clear WR1.'
   },
   {
-    id:'third',name:'The Third',us:false,rostered:19,
-    qb:{floor:'S',ceil:'S',prob:'High',frag:'fragile',starters:['Josh Allen (BUF)'],depth:['Jalen Hurts (PHI)','Jaxson Dart (NYG)']},
-    rb:{floor:'B',ceil:'A',prob:'Medium',frag:'robust',starters:['Josh Jacobs (GB)','Kyren Williams (LAR)'],depth:['Rachaad White (WAS)','Demond Claiborne (MIN)']},
-    wr:{floor:'B',ceil:'B',prob:'Low',frag:'fragile',starters:['Luther Burden (CHI)','Courtland Sutton (DEN)','Jayden Reed (GB)'],depth:['Ricky Pearsall (SF)','Rashid Shaheed (SEA)','Omar Cooper (NYJ)','Jauan Jennings (MIN)','Denzel Boston (CLE)','Malachi Fields (NYG)',"Ja'Kobi Lane (BAL)"]},
-    te:{floor:'B',ceil:'B',prob:'Low',frag:'fragile',starters:['Tucker Kraft (GB)'],depth:['Hunter Henry (NE)']},
-    flex:{floor:'A',ceil:'A',prob:'High',frag:'robust',note:'Allen/Hurts floor props up flex'},
-    flexDepth:{floor:'B',ceil:'B',prob:'Low',frag:'fragile',note:'WR room is thin beyond starters'},
-    overall:{floor:'A',ceil:'A',delta:'minimal',frag:'fragile'},
-    window:'open',windowNote:'Allen/Hurts floor is elite but roster construction is unbalanced.',primeConcern:false,
-    philosophy:'The best QB/SF combo in the league with Allen and Hurts is a weekly floor-raiser. The problem is everything else is pedestrian — thin WR room, average RBs, mediocre TE depth. This team wins or loses based almost entirely on Allen and Hurts outscoring counterparts. A QB injury is catastrophic.',
-    needs:['WR1','TE1 upgrade'],surplus:['QB surplus value'],
+    id:'third',name:'The Third',owner:'',us:false,rostered:20,
+    qb:{floor:'S',ceil:'S',prob:'High',frag:'robust',starters:['Josh Allen (BUF)','Jalen Hurts (PHI)'],depth:['Jaxson Dart (NYG)']},
+    rb:{floor:'C',ceil:'B',prob:'Medium',frag:'robust',starters:['Josh Jacobs (GB)','Kyren Williams (LAR)'],depth:['Rachaad White (WAS)','Sean Tucker (TB)','Demond Claiborne (MIN)']},
+    wr:{floor:'A',ceil:'A',prob:'High',frag:'antifragile',starters:['Luther Burden (CHI)','Courtland Sutton (DEN)','Ricky Pearsall (SF)'],depth:['Denzel Boston (CLE)','Jauan Jennings (MIN)','Jayden Reed (GB)','Ja\'Kobi Lane (BAL)','Rashid Shaheed (SEA)','Malachi Fields (NYG)','Omar Cooper (NYJ)']},
+    te:{floor:'B',ceil:'A',prob:'High',frag:'robust',starters:['Tucker Kraft (GB)'],depth:['Hunter Henry (NE)']},
+    flex:{floor:'A',ceil:'A',prob:'High',frag:'antifragile',note:'Massive WR depth pool led by Omar Cooper and Denzel Boston; Jayden Reed as slot upside'},
+    flexDepth:{floor:'B',ceil:'A',prob:'Low',frag:'antifragile',note:'7-deep WR depth provides extreme league antifragility and trade capital'},
+    overall:{floor:'A',ceil:'A',delta:'moderate',frag:'antifragile'},
+    window:'open',windowNote:'Josh Allen in prime years with deep WR arsenal and young QB insurance',primeConcern:false,
+    philosophy:'The Third is anchored by the best single player in dynasty — Josh Allen — plus the deepest WR depth pool in the league that doubles as tremendous trade capital and antifragile insurance. Jalen Hurts provides elite SF insurance, and Jaxson Dart is a credible long-term QB1 candidate going into Year 1 as the Giants\' starter. Tucker Kraft continues to develop as a legitimate TE1 in Green Bay\'s system. The RB room is the floor suppressor — Jacobs is aging and Williams has injury concerns; Sean Tucker and Claiborne need to prove it. The sheer volume of playable WR depth (Reed, Cooper, Boston, Fields) makes this roster virtually immune to WR injuries league-wide.',
+    needs:['RB proven','RB1 elite'],surplus:['WR depth','QB proven'],
     age:{QB:30,RB:28,WR:25,TE:32},
-    picks2027:['R1','R2','R3','R4','R5','R6','R7']
+    picks2027:['R1','R2','R3','R4','R5','R6','R7'],
+    powerRank:2,powerRationale:'Allen-Hurts-Dart plus WR depth is unmatched in league. Up: Dart emerges as elite starter. Down: RB room fails entirely, limiting floor.'
   },
   {
-    id:'delocho',name:'DEL OCHO',us:false,rostered:18,
-    qb:{floor:'B',ceil:'B',prob:'Medium',frag:'fragile',starters:['Brock Purdy (SF)'],depth:['Cam Ward (TEN)']},
-    rb:{floor:'B',ceil:'A',prob:'High',frag:'antifragile',starters:['Bijan Robinson (ATL)','Omarion Hampton (LAC)'],depth:['Breece Hall (NYJ)','Nicholas Singleton (TEN)','Adam Randall (BAL)','Jonathon Brooks (CAR)']},
-    wr:{floor:'B',ceil:'B',prob:'Low',frag:'fragile',starters:['Jameson Williams (DET)','Mike Evans (SF)','Michael Pittman (PIT)'],depth:['Makai Lemon (PHI)',"Wan'Dale Robinson (TEN)",'Skyler Bell (BUF)']},
-    te:{floor:'B',ceil:'B',prob:'Low',frag:'fragile',starters:['Chig Okonkwo (WAS)'],depth:['Terrance Ferguson (LAR)','Eli Raridon (NE)','Justin Joly (DEN)']},
-    flex:{floor:'B',ceil:'A',prob:'High',frag:'antifragile',note:'Antifragile RB room drives flex upside'},
-    flexDepth:{floor:'B',ceil:'A',prob:'High',frag:'antifragile',note:'RB depth inherits injured starters elsewhere'},
-    overall:{floor:'B',ceil:'A',delta:'moderate',frag:'antifragile'},
-    window:'opening',windowNote:'Young antifragile RB room. Window opens in 1-2 years.',primeConcern:false,
-    philosophy:'Purdy anchors a serviceable but unspectacular roster. The most interesting aspect is the antifragile RB room — Hampton, Hall, Singleton, and Randall are all positioned to inherit roles. No position group is elite but none catastrophic. More upside than the floor suggests.',
-    needs:['QB1 upgrade','WR1','TE1'],surplus:['RB depth'],
+    id:'delocho',name:'DEL OCHO',owner:'',us:false,rostered:20,
+    qb:{floor:'A',ceil:'A',prob:'High',frag:'robust',starters:['Brock Purdy (SF)','Cam Ward (TEN)'],depth:['Taylen Green (CLE)']},
+    rb:{floor:'S',ceil:'S',prob:'High',frag:'antifragile',starters:['Bijan Robinson (ATL)','Omarion Hampton (LAC)'],depth:['Breece Hall (NYJ)','Nicholas Singleton (TEN)','Jonathon Brooks (CAR)','Adam Randall (BAL)']},
+    wr:{floor:'A',ceil:'B',prob:'Medium',frag:'robust',starters:['Jameson Williams (DET)','Mike Evans (SF)','Makai Lemon (PHI)'],depth:['Michael Pittman (PIT)','Wan\'Dale Robinson (TEN)','Skyler Bell (BUF)','Tank Dell (HOU)']},
+    te:{floor:'C',ceil:'C',prob:'Low',frag:'fragile',starters:['Justin Joly (DEN)'],depth:['Eli Raridon (NE)','Terrance Ferguson (LAR)','Chig Okonkwo (WAS)']},
+    flex:{floor:'A',ceil:'A',prob:'High',frag:'robust',note:'Breece Hall and Singleton provide genuine RB antifragility; WR depth is thin but young'},
+    flexDepth:{floor:'B',ceil:'A',prob:'High',frag:'antifragile',note:'Hall, Singleton, Brooks behind Robinson/Hampton is true antifragile RB depth'},
+    overall:{floor:'A',ceil:'A',delta:'high',frag:'robust'},
+    window:'open',windowNote:'Bijan-Hampton RB1/2 with Hall in reserve is the best RB depth in league',primeConcern:false,
+    philosophy:'DEL OCHO has the most dominant RB room in dynasty — Bijan Robinson at peak value, Omarion Hampton confirmed as Chargers bellcow entering Year 2 with Mike McDaniel as new OC (a historically RB-friendly hire), and Breece Hall as genuine handcuff/flex depth. Cam Ward enters his second year with the Titans as the confirmed starter with improved weapons. The TE position is the critical weakness — Justin Joly, Raridon, Ferguson, and Okonkwo form a collection of unproven streamers with no clear TE premium upside. WR is average to weak — Jameson Williams has talent but injury concerns, and Makai Lemon is a rookie with upside but unproven NFL role. The RB surplus can fuel trades to address TE and WR needs.',
+    needs:['TE proven','WR elite'],surplus:['RB depth','RB elite'],
     age:{QB:27,RB:24,WR:27,TE:26},
-    picks2027:['R1','R2','R3','R4','R5','R6','R6']
+    picks2027:['R1','R2','R3','R4','R5','R6','R6'],
+    powerRank:7,powerRationale:'Best RB depth in league but crippled by TE and WR weaknesses. Up: Lemon emerges as top WR. Down: WR/TE combo costs 8+ pts weekly.'
   },
   {
-    id:'meatshack',name:'Meat Shack',us:false,rostered:16,
-    qb:{floor:'B',ceil:'A',prob:'Medium',frag:'fragile',starters:['Caleb Williams (CHI)'],depth:['Aaron Rodgers (PIT)','Ty Simpson (LAR)']},
-    rb:{floor:'B',ceil:'B',prob:'Low',frag:'fragile',starters:['Cam Skattebo (NYG)','RJ Harvey (DEN)'],depth:['Blake Corum (LAR)','Devin Neal (NO)']},
-    wr:{floor:'A',ceil:'S',prob:'High',frag:'robust',starters:['Garrett Wilson (NYJ)','Marvin Harrison (ARI)','Parker Washington (JAC)'],depth:['Jalen Coker (CAR)','Antonio Williams (WAS)','Ted Hurst (TB)']},
-    te:{floor:'S',ceil:'S',prob:'High',frag:'robust',starters:['Brock Bowers (LV)'],depth:['Oscar Delp (NO)','Max Klare (LAR)']},
-    flex:{floor:'A',ceil:'S',prob:'High',frag:'robust',note:'Bowers + WR overflow is elite'},
-    flexDepth:{floor:'A',ceil:'A',prob:'High',frag:'robust',note:'WR room deep enough to absorb injury'},
-    overall:{floor:'B',ceil:'A',delta:'moderate',frag:'fragile'},
-    window:'opening',windowNote:'Caleb Williams Year 2 is the key unlock.',primeConcern:false,
-    philosophy:'Brock Bowers is elite and a massive TE premium asset. G. Wilson and Marvin Harrison give real WR upside. But Rodgers at SF is a catastrophic liability. Caleb Williams needs a Year 2 leap just to make this functional at QB. The talent is here but the SF hole drags everything down weekly.',
-    needs:['QB/SF upgrade'],surplus:['TE elite','WR depth'],
+    id:'meatshack',name:'Meat Shack',owner:'',us:false,rostered:18,
+    qb:{floor:'A',ceil:'A',prob:'High',frag:'robust',starters:['Caleb Williams (CHI)','Ty Simpson (LAR)'],depth:['Aaron Rodgers (PIT)']},
+    rb:{floor:'C',ceil:'B',prob:'Medium',frag:'robust',starters:['RJ Harvey (DEN)','Cam Skattebo (NYG)'],depth:['Blake Corum (LAR)','Devin Neal (NO)','LeQuint Allen (JAC)']},
+    wr:{floor:'B',ceil:'A',prob:'High',frag:'robust',starters:['Garrett Wilson (NYJ)','Marvin Harrison (ARI)','Parker Washington (JAC)'],depth:['Jalen Coker (CAR)','Antonio Williams (WAS)','Ted Hurst (TB)','Jalen Royals (KC)']},
+    te:{floor:'S',ceil:'S',prob:'High',frag:'robust',starters:['Brock Bowers (LV)'],depth:['Max Klare (LAR)','Oscar Delp (NO)']},
+    flex:{floor:'C',ceil:'A',prob:'High',frag:'robust',note:'WR depth solid with Coker, Antonio Williams; TE depth in Klare and Delp'},
+    flexDepth:{floor:'A',ceil:'B',prob:'High',frag:'robust',note:'WR/TE depth functional; Jalen Royals upside candidate in passing offense'},
+    overall:{floor:'B',ceil:'A',delta:'moderate',frag:'robust'},
+    window:'open',windowNote:'Caleb Williams entering Year 2 with elite weapons in Bowers, Wilson, Harrison',primeConcern:false,
+    philosophy:'Meat Shack is built for Year 2 Caleb Williams to ascend — Brock Bowers is the best TE in dynasty and thrives regardless of QB quality, Garrett Wilson is a proven WR1, and Marvin Harrison Jr. profiles as a franchise receiver in a Kingsbury-run offense. The RB room is functional but modest: Harvey and Skattebo are both 2025 draft picks without proven workhorse floors, and Aaron Rodgers provides emergency SF depth but is end-of-career. Parker Washington carries legitimate opportunity upside after a 17-point PPG stretch when Hunter went down. The core is excellent but the surrounding depth is thin — this roster wins if three or four core players stay healthy but has limited injury insurance.',
+    needs:['RB proven','RB upside','QB backup elite'],surplus:['TE elite','WR proven'],
     age:{QB:23,RB:24,WR:24,TE:23},
-    picks2027:['R1','R1','R2','R2','R3','R4','R5','R6','R7']
+    picks2027:['R1','R1','R2','R2','R3','R4','R5','R6','R7'],
+    powerRank:8,powerRationale:'Bowers plus Wilson plus Harrison with Williams ascending is compelling. Up: Caleb Williams takes MVP leap. Down: RB room collapses under injury.'
   },
   {
-    id:'greeneggs',name:'GreenEggs CNcN',us:false,rostered:19,
-    qb:{floor:'C',ceil:'B',prob:'Low',frag:'fragile',starters:['Bryce Young (CAR)'],depth:['Jacoby Brissett (ARI)','Carson Beck (ARI)']},
-    rb:{floor:'B',ceil:'A',prob:'High',frag:'robust',starters:['Chase Brown (CIN)','Kenneth Walker (KC)'],depth:['Jordan Mason (MIN)','Chris Rodriguez (JAC)','Keaton Mitchell (LAC)','Kimani Vidal (LAC)']},
-    wr:{floor:'S',ceil:'S',prob:'High',frag:'robust',starters:["Ja'Marr Chase (CIN)",'Puka Nacua (LAR)','Malik Nabers (NYG)'],depth:['Davante Adams (LAR)','Matthew Golden (GB)','Stefon Diggs (FA)','Jack Bech (LV)']},
-    te:{floor:'A',ceil:'A',prob:'High',frag:'robust',starters:['Kyle Pitts (ATL)'],depth:['Oronde Gadsden (LAC)','Cade Otton (TB)']},
-    flex:{floor:'S',ceil:'S',prob:'High',frag:'robust',note:'S-tier WR overflow dominates flex'},
-    flexDepth:{floor:'A',ceil:'S',prob:'High',frag:'robust',note:'WR depth + Pitts overflow'},
-    overall:{floor:'B',ceil:'A',delta:'moderate',frag:'fragile'},
-    window:'retool',windowNote:'Elite skill players wasted on C-tier QB. Must address QB to open window.',primeConcern:false,
-    philosophy:"Ja'Marr Chase, Nacua, and Nabers is an S-tier WR trio paired with a C-tier QB room. Elite skill players wasted on bad QB play every week. If Young or Beck breaks out, this becomes dangerous. Until then, needs WRs to overcome a 10-15 point QB deficit weekly.",
-    needs:['QB desperately'],surplus:['WR elite','TE','RB depth'],
+    id:'greeneggs',name:'GreenEggs CNcN',owner:'',us:false,rostered:20,
+    qb:{floor:'C',ceil:'B',prob:'Low',frag:'fragile',starters:['Bryce Young (CAR)','Jacoby Brissett (ARI)'],depth:['Carson Beck (ARI)']},
+    rb:{floor:'B',ceil:'A',prob:'High',frag:'robust',starters:['Chase Brown (CIN)','Kenneth Walker (KC)'],depth:['Jordan Mason (MIN)','Kimani Vidal (LAC)','Keaton Mitchell (LAC)','Chris Rodriguez (JAC)']},
+    wr:{floor:'S',ceil:'S',prob:'High',frag:'antifragile',starters:['Ja\'Marr Chase (CIN)','Puka Nacua (LAR)','Malik Nabers (NYG)'],depth:['Davante Adams (LAR)','Stefon Diggs (FA)','Matthew Golden (GB)','Bryce Lance (NO)','Jack Bech (LV)']},
+    te:{floor:'B',ceil:'B',prob:'Medium',frag:'robust',starters:['Kyle Pitts (ATL)'],depth:['Oronde Gadsden (LAC)','Cade Otton (TB)']},
+    flex:{floor:'B',ceil:'A',prob:'High',frag:'antifragile',note:'Diggs, Adams, Golden, and Gadsden add genuine depth alongside elite WR trio'},
+    flexDepth:{floor:'A',ceil:'A',prob:'High',frag:'antifragile',note:'Matthew Golden and Oronde Gadsden are scheme-upside candidates worth monitoring'},
+    overall:{floor:'B',ceil:'A',delta:'high',frag:'robust'},
+    window:'opening',windowNote:'WR trio is generational but QB room is a critical window-closing flaw',primeConcern:false,
+    philosophy:'GreenEggs has a WR triumvirate — Ja\'Marr Chase, Puka Nacua, and Malik Nabers — that may be the best three-receiver combination in all of dynasty. Chase Brown and Kenneth Walker form a capable RB core. The existential problem is quarterback: Bryce Young, Jacoby Brissett, and Carson Beck represent one of the weakest QB rooms in the league, and in a superflex format, that is a weekly structural handicap that directly caps this roster\'s ceiling regardless of skill position talent. Kyle Pitts in a new situation offers scheme upside if he lands in a pass-heavy offense but the track record is inconsistent. This team wins a championship if they upgrade the QB room significantly — that is the sole needle to thread.',
+    needs:['QB starter proven','QB SF depth'],surplus:['WR elite','WR depth'],
     age:{QB:24,RB:25,WR:25,TE:24},
-    picks2027:['R3','R4','R4','R5','R6','R7','R7']
+    picks2027:['R3','R4','R4','R5','R6','R7','R7'],
+    powerRank:9,powerRationale:'Best WR room in league offset by worst QB room. Up: Beck or Young emerges as legitimate SF1. Down: QB deficit costs 6+ pts per week all season.'
   },
   {
-    id:'duhhh',name:'Duhhhh',us:false,rostered:21,
-    qb:{floor:'B',ceil:'B',prob:'Low',frag:'fragile',starters:['Matthew Stafford (LAR)'],depth:['Baker Mayfield (TB)','Daniel Jones (IND)']},
-    rb:{floor:'S',ceil:'S',prob:'High',frag:'robust',starters:['James Cook (BUF)',"De'Von Achane (MIA)"],depth:['Saquon Barkley (PHI)','Derrick Henry (BAL)','Quinshon Judkins (CLE)','Tank Bigsby (PHI)','Ray Davis (BUF)','Jaylen Wright (MIA)','Ollie Gordon (MIA)']},
+    id:'duhhh',name:'Duhhhh',owner:'',us:false,rostered:22,
+    qb:{floor:'B',ceil:'B',prob:'Medium',frag:'robust',starters:['Matthew Stafford (LAR)','Baker Mayfield (TB)'],depth:['Daniel Jones (IND)']},
+    rb:{floor:'A',ceil:'S',prob:'High',frag:'antifragile',starters:['De\'Von Achane (MIA)','James Cook (BUF)'],depth:['Saquon Barkley (PHI)','Derrick Henry (BAL)','Quinshon Judkins (CLE)','Tank Bigsby (PHI)','Jaylen Wright (MIA)','Ray Davis (BUF)','Ollie Gordon (MIA)']},
     wr:{floor:'A',ceil:'A',prob:'High',frag:'robust',starters:['Chris Olave (NO)','Tetairoa McMillan (CAR)','Tee Higgins (CIN)'],depth:['Jaylen Waddle (DEN)','Christian Watson (GB)','Zachariah Branch (ATL)']},
-    te:{floor:'A',ceil:'S',prob:'High',frag:'robust',starters:['Sam LaPorta (DET)'],depth:['Travis Kelce (KC)','Mark Andrews (BAL)']},
-    flex:{floor:'S',ceil:'S',prob:'High',frag:'robust',note:'RB room so deep flex is never an issue'},
-    flexDepth:{floor:'S',ceil:'S',prob:'High',frag:'robust',note:'Historically deep — wasted by QB hole'},
-    overall:{floor:'A',ceil:'A',delta:'minimal',frag:'fragile'},
-    window:'retool',windowNote:'Henry/Kelce/Andrews aging. RB extreme overkill. Needs QB urgently.',primeConcern:true,
-    philosophy:'The most lopsided roster in the league. Cook, Barkley, Henry, Achane in the same RB room is historically deep — but Stafford and Mayfield at QB/SF is a weekly handicap in superflex. The RB depth is so extreme it\'s essentially wasted. Very fun roster, very exploitable weakness.',
-    needs:['QB urgently','SF upgrade'],surplus:['RB extreme','TE depth'],
+    te:{floor:'B',ceil:'B',prob:'Medium',frag:'robust',starters:['Sam LaPorta (DET)'],depth:['Travis Kelce (KC)','Mark Andrews (BAL)','Pat Freiermuth (PIT)']},
+    flex:{floor:'S',ceil:'A',prob:'High',frag:'antifragile',note:'RB overflow is extreme; Barkley, Henry, Judkins all have RB1 upside'},
+    flexDepth:{floor:'S',ceil:'S',prob:'High',frag:'antifragile',note:'Duhhhh\'s RB depth functions as antifragile insurance for any injury in league'},
+    overall:{floor:'A',ceil:'A',delta:'moderate',frag:'antifragile'},
+    window:'retool',windowNote:'Aging starters at RB and TE; window dependent on Stafford and Cook timeline',primeConcern:true,
+    philosophy:'Duhhhh has extraordinary RB depth — Achane, Cook, Barkley, Henry, Judkins, and Bigsby is arguably the deepest RB room in dynasty and an antifragile asset against league-wide injuries. The WR corps is solid with McMillan, Higgins, and Olave. The concern is timing: Stafford, Henry, Barkley, Kelce, and Andrews are all aging or past prime, creating a prime concern flag. Quinshon Judkins is the key retool asset — a first-round pick from 2026 who should inherit significant work going forward. The window is in retool because the core is top-heavy with aging players; moving aging assets for youth while Achane and Cook are still producers is the strategic imperative.',
+    needs:['QB proven long-term','TE young'],surplus:['RB depth','RB elite'],
     age:{QB:38,RB:29,WR:26,TE:33},
-    picks2027:['R5','R6','R7','R7']
+    picks2027:['R5','R6','R7','R7'],
+    powerRank:10,powerRationale:'Unmatched RB depth but aging core throughout roster. Up: Judkins seizes RB1 role. Down: Stafford decline accelerates, killing SF value.'
   },
   {
-    id:'warranted',name:'When Warrented',us:false,rostered:19,
-    qb:{floor:'A',ceil:'A',prob:'High',frag:'fragile',starters:['Justin Herbert (LAC)'],depth:['Bo Nix (DEN)','Geno Smith (NYJ)']},
-    rb:{floor:'A',ceil:'S',prob:'High',frag:'fragile',starters:['Jahmyr Gibbs (DET)','Javonte Williams (DAL)'],depth:['Jaylen Warren (PIT)','Aaron Jones (MIN)','Kaytron Allen (WAS)','MarShawn Lloyd (GB)','Eli Heidenreich (PIT)']},
-    wr:{floor:'B',ceil:'B',prob:'Low',frag:'fragile',starters:['Justin Jefferson (MIN)','Terry McLaurin (WAS)','Jakobi Meyers (JAC)'],depth:['Romeo Doubs (NE)','Jerry Jeudy (CLE)','Germie Bernard (PIT)']},
+    id:'warranted',name:'When Warrented',owner:'',us:false,rostered:20,
+    qb:{floor:'A',ceil:'A',prob:'High',frag:'robust',starters:['Justin Herbert (LAC)','Bo Nix (DEN)'],depth:['Geno Smith (NYJ)']},
+    rb:{floor:'A',ceil:'A',prob:'Medium',frag:'robust',starters:['Jahmyr Gibbs (DET)','Javonte Williams (DAL)'],depth:['Jaylen Warren (PIT)','Aaron Jones (MIN)','Kaytron Allen (WAS)','MarShawn Lloyd (GB)','Eli Heidenreich (PIT)']},
+    wr:{floor:'A',ceil:'A',prob:'Medium',frag:'robust',starters:['Justin Jefferson (MIN)','Terry McLaurin (WAS)','Jakobi Meyers (JAC)'],depth:['Jerry Jeudy (CLE)','Germie Bernard (PIT)','Romeo Doubs (NE)','Jalen Nailor (LV)']},
     te:{floor:'A',ceil:'A',prob:'High',frag:'robust',starters:['Tyler Warren (IND)'],depth:['Dallas Goedert (PHI)','Gunnar Helm (TEN)']},
-    flex:{floor:'A',ceil:'S',prob:'High',frag:'fragile',note:'Gibbs at flex is elite when healthy'},
-    flexDepth:{floor:'B',ceil:'A',prob:'Medium',frag:'fragile',note:'WR room too thin to compensate RB injury'},
-    overall:{floor:'A',ceil:'A',delta:'minimal',frag:'fragile'},
-    window:'open',windowNote:'Gibbs/Herbert prime window is now. WR depth is the weak link.',primeConcern:false,
-    philosophy:'Built around an elite RB room headlined by Gibbs. Works brilliantly when healthy — Gibbs at flex is elite — but an injury to him or Williams creates a cascading problem since the WR room isn\'t deep enough. Tyler Warren at TE is a hidden weapon. Needs RBs healthy all season.',
-    needs:['WR depth','WR upside'],surplus:['RB value','TE depth'],
+    flex:{floor:'A',ceil:'B',prob:'Medium',frag:'robust',note:'WR/RB depth is thin; Germie Bernard and Gunnar Helm offer scheme upside in new systems'},
+    flexDepth:{floor:'B',ceil:'B',prob:'Medium',frag:'robust',note:'Depth is thin across the board; starter quality is strong but injury exposure is real'},
+    overall:{floor:'A',ceil:'A',delta:'moderate',frag:'robust'},
+    window:'open',windowNote:'Gibbs-Herbert-Jefferson-Warren is an elite four-piece with real contention window',primeConcern:false,
+    philosophy:'When Warrented has four genuine dynasty elite pieces in Jahmyr Gibbs (arguably top-3 dynasty RB), Justin Herbert, Justin Jefferson, and Tyler Warren. The issue is the supporting cast: McLaurin and Meyers are aging WR2/3 options, Javonte Williams carries injury history at RB, and the WR depth pool (Jeudy, Bernard, Nailor) is thin. Gunnar Helm represents scheme upside as a rookie TE with target share potential in a pass-heavy system. The fragility is real — if Herbert goes down, Bo Nix is a capable SF fill, but this roster\'s floor drops significantly if any of the four elite pieces miss time without proven depth behind them. This is a contend-or-regret roster that needs to capitalize now.',
+    needs:['WR proven depth','RB2 proven'],surplus:['RB elite','QB proven'],
     age:{QB:28,RB:25,WR:28,TE:27},
-    picks2027:['R1','R3','R4','R5','R6','R7']
+    picks2027:['R1','R3','R4','R5','R6','R7'],
+    powerRank:11,powerRationale:'Four elite pieces but thin depth creates fragility risk. Up: Warren becomes top-5 TE. Down: Injury to Herbert or Gibbs ends season.'
   },
   {
-    id:'depot',name:'Dynasty Depot',us:false,rostered:19,
-    qb:{floor:'A',ceil:'A',prob:'High',frag:'robust',starters:['Joe Burrow (CIN)'],depth:['Trevor Lawrence (JAC)','Tyler Shough (NO)']},
-    rb:{floor:'A',ceil:'A',prob:'High',frag:'fragile',starters:['Jonathan Taylor (IND)','Travis Etienne (NO)'],depth:['Bhayshul Tuten (JAC)','Kenneth Gainwell (TB)','Dylan Sampson (CLE)','Brian Robinson (ATL)']},
-    wr:{floor:'A',ceil:'S',prob:'High',frag:'fragile',starters:['A.J. Brown (PHI)','DJ Moore (BUF)','Carnell Tate (TEN)'],depth:['Quentin Johnston (LAC)',"De'Zhaun Stribling (SF)","Tre' Harris (LAC)",'Chris Brazzell (CAR)']},
-    te:{floor:'B',ceil:'B',prob:'Low',frag:'fragile',starters:['Jake Ferguson (DAL)'],depth:['Dalton Schultz (HOU)','Eli Stowers (PHI)']},
-    flex:{floor:'A',ceil:'S',prob:'High',frag:'robust',note:'WR overflow + solid RB depth'},
-    flexDepth:{floor:'B',ceil:'B',prob:'Low',frag:'fragile',note:'Fragile if Taylor/Etienne go down'},
-    overall:{floor:'A',ceil:'A',delta:'minimal',frag:'fragile'},
-    window:'open',windowNote:'Burrow/Lawrence + AJ Brown window is now. Fragile if Taylor/Etienne go down.',primeConcern:false,
-    philosophy:'Burrow and Lawrence is an underrated QB/SF pairing giving a real weekly floor. The RB room with Taylor and Etienne is strong but fragile — if either goes down the depth is ordinary. AJ Brown and DJ Moore have S-tier ceiling if healthy. Needs its stars on the field.',
-    needs:['TE1 upgrade','RB depth'],surplus:['QB value','WR depth'],
+    id:'depot',name:'Dynasty Depot',owner:'',us:false,rostered:21,
+    qb:{floor:'S',ceil:'A',prob:'High',frag:'robust',starters:['Joe Burrow (CIN)','Trevor Lawrence (JAC)'],depth:['Tyler Shough (NO)']},
+    rb:{floor:'B',ceil:'A',prob:'Medium',frag:'robust',starters:['Jonathan Taylor (IND)','Travis Etienne (NO)'],depth:['Bhayshul Tuten (JAC)','Dylan Sampson (CLE)','Kenneth Gainwell (TB)','Emanuel Wilson (SEA)','Brian Robinson (ATL)','DJ Giddens (IND)']},
+    wr:{floor:'A',ceil:'A',prob:'High',frag:'robust',starters:['A.J. Brown (PHI)','Carnell Tate (TEN)','Quentin Johnston (LAC)'],depth:['DJ Moore (BUF)','Chris Brazzell (CAR)','Tre\' Harris (LAC)','De\'Zhaun Stribling (SF)']},
+    te:{floor:'C',ceil:'B',prob:'Medium',frag:'robust',starters:['Jake Ferguson (DAL)'],depth:['Dalton Schultz (HOU)','Eli Stowers (PHI)']},
+    flex:{floor:'A',ceil:'B',prob:'Medium',frag:'robust',note:'WR depth functional with Moore and Brazzell; RB depth below average'},
+    flexDepth:{floor:'B',ceil:'B',prob:'Low',frag:'robust',note:'DJ Moore and Tre Harris provide WR depth; RB depth room is concerning'},
+    overall:{floor:'A',ceil:'A',delta:'moderate',frag:'robust'},
+    window:'opening',windowNote:'Burrow and Lawrence give premium QB ceiling but window timing is unclear',primeConcern:false,
+    philosophy:'Dynasty Depot has a legitimate QB room in Burrow and Lawrence — two top-10 dynasty QBs — and Carnell Tate went top-10 as a Pittsburgh rookie WR with immediate target share opportunity in a Penix-led offense. Jonathan Taylor is a proven producer though his injury history is real, and Etienne provides a capable backup. The WR room is solid but not elite with AJ Brown and Tate. Eli Stowers is an interesting TE opportunity upside candidate as a young player in a pass-friendly offense. The RB depth is the weakest part of this roster — Tuten, Sampson, and Gainwell are unproven — and the window is opening rather than open because both Burrow and Lawrence are still playing around injuries and rebuilding situations. This is a strong team trending upward.',
+    needs:['RB proven depth','TE proven'],surplus:['QB proven','WR draft capital'],
     age:{QB:28,RB:28,WR:29,TE:30},
-    picks2027:['R1','R1','R2','R2','R3','R3','R5','R6','R7']
+    picks2027:['R1','R1','R2','R2','R3','R3','R5','R6','R7'],
+    powerRank:12,powerRationale:'Two elite QBs and ascending WR in Tate but weak RB depth and TE position. Up: Tate becomes WR1 in Pittsburgh. Down: Lawrence situation stays murky.'
   }
 ];
 
@@ -2644,5 +2782,6 @@ window.addEventListener('DOMContentLoaded',()=>{
   loadSleeperAges();
 });
 </script>
-</body>
-</html>
+
+
+</body></html>
