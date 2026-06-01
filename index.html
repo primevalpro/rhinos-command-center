@@ -49,6 +49,11 @@ body{background:#0c0c0c;color:#e8e6e0;font-family:'Barlow',sans-serif;min-height
 .tag-retool{background:#3a2a08;color:#d4950a}
 .tag-rebuild{background:#3a1510;color:#d06040}
 .tag-warning{background:#3a2a08;color:#d4950a}
+/* Balance indicator tags */
+.tag-even{background:#0a3d28;color:#1D9E75}
+.tag-steady{background:#0a1e3a;color:#4a9ede}
+.tag-uneven{background:#3a2a08;color:#d4950a}
+.tag-lopsided{background:#3a1510;color:#d06040}
 .card{background:#161616;border:1px solid #222;border-radius:8px;padding:14px;margin-bottom:10px}
 .card.us{border-color:#1D9E75;background:#0d1f18}
 .section-label{font-family:'Barlow Condensed',sans-serif;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#555;margin-bottom:8px}
@@ -597,6 +602,8 @@ async function loadKTC(forceRefresh){
       saveKTCToCache(newValues);
       ktcLoaded=true;
       console.log(`FantasyCalc loaded: ${Object.keys(newValues).length} players`);
+      computeFloorGrades();
+      renderOverview(g('mainContent'));
     } else {
       throw new Error('Too few players returned');
     }
@@ -645,6 +652,7 @@ function processKtcManualImport(){
     ktcLoaded=true;
     g('ktcImportStatus').innerHTML=`<span style="color:#1D9E75">Loaded ${Object.keys(newValues).length} player values.</span>`;
     updateKTCStatusBadge();
+    computeFloorGrades();
     setTimeout(()=>closeModal('modalKtcImport'),1200);
   }catch(err){
     g('ktcImportStatus').innerHTML=`<span style="color:#d06040">Parse error: ${err.message}</span>`;
@@ -655,6 +663,98 @@ function getKTCValue(playerName){
   if(!playerName)return 0;
   const clean=playerName.split(' (')[0].toLowerCase().trim();
   return ktcValues[clean]||0;
+}
+
+// ── FLOOR GRADE ENGINE (FC-based, gap detection) ──────────────────────────────
+// Weights for overall composite floor grade
+const FLOOR_WEIGHTS={qb:0.30,rb:0.20,wr:0.20,te:0.15,flex:0.15};
+// Gap threshold: a drop of this % or more triggers a new tier
+const TIER_GAP_THRESHOLD=0.17;
+
+function computeFloorGrades(){
+  if(!ktcLoaded)return; // need FC values loaded first
+
+  // ── Step 1: compute raw group values per team ──
+  TEAMS.forEach(t=>{
+    // QB: top 2 starters FC sum
+    t._fcQB = t.qb.starters.slice(0,2).reduce((s,p)=>s+getKTCValue(p),0);
+    // RB: top 2 starters FC sum
+    t._fcRB = t.rb.starters.slice(0,2).reduce((s,p)=>s+getKTCValue(p),0);
+    // WR: top 3 starters FC sum
+    t._fcWR = t.wr.starters.slice(0,3).reduce((s,p)=>s+getKTCValue(p),0);
+    // TE: top 1 starter FC value
+    t._fcTE = t.te.starters.slice(0,1).reduce((s,p)=>s+getKTCValue(p),0);
+    // Flex: all non-QB, non-starter depth players pooled
+    t._fcFlex = [
+      ...t.rb.depth,
+      ...t.wr.depth,
+      ...t.te.depth
+    ].reduce((s,p)=>s+getKTCValue(p),0);
+  });
+
+  // ── Step 2: assign letter grades via gap detection ──
+  function assignTierGrades(teams, fcKey){
+    const sorted=[...teams].sort((a,b)=>b[fcKey]-a[fcKey]);
+    const grades={};
+    // Start at S, drop tier when gap >= threshold
+    const tierLetters=['S','A','B','C'];
+    let tierIdx=0;
+    for(let i=0;i<sorted.length;i++){
+      if(i>0 && tierIdx<tierLetters.length-1){
+        const prev=sorted[i-1][fcKey];
+        const curr=sorted[i][fcKey];
+        // Gap detection: relative drop from previous team's value
+        if(prev>0 && (prev-curr)/prev >= TIER_GAP_THRESHOLD){
+          tierIdx++;
+        }
+        // Also hard-cap: never more than 4 teams at S, 5 at A
+        if(tierIdx===0 && i>=4) tierIdx=1;
+        if(tierIdx===1 && i>=9) tierIdx=2;
+      }
+      grades[sorted[i].id]=tierLetters[Math.min(tierIdx,3)];
+    }
+    return grades;
+  }
+
+  const qbGrades  = assignTierGrades(TEAMS,'_fcQB');
+  const rbGrades  = assignTierGrades(TEAMS,'_fcRB');
+  const wrGrades  = assignTierGrades(TEAMS,'_fcWR');
+  const teGrades  = assignTierGrades(TEAMS,'_fcTE');
+  const flexGrades= assignTierGrades(TEAMS,'_fcFlex');
+
+  // ── Step 3: write floors back to team objects ──
+  const GRADE_VAL={S:4,A:3,B:2,C:1};
+  const GRADE_LET=['C','B','A','S']; // index 0=C,1=B,2=A,3=S
+
+  TEAMS.forEach(t=>{
+    t.qb.floor   = qbGrades[t.id]   || 'C';
+    t.rb.floor   = rbGrades[t.id]   || 'C';
+    t.wr.floor   = wrGrades[t.id]   || 'C';
+    t.te.floor   = teGrades[t.id]   || 'C';
+    t.flex.floor = flexGrades[t.id] || 'C';
+
+    // ── Overall: weighted composite ──
+    const wScore =
+      GRADE_VAL[t.qb.floor]   * FLOOR_WEIGHTS.qb  +
+      GRADE_VAL[t.rb.floor]   * FLOOR_WEIGHTS.rb  +
+      GRADE_VAL[t.wr.floor]   * FLOOR_WEIGHTS.wr  +
+      GRADE_VAL[t.te.floor]   * FLOOR_WEIGHTS.te  +
+      GRADE_VAL[t.flex.floor] * FLOOR_WEIGHTS.flex;
+    // Round to nearest grade (1-4 scale)
+    const compositeIdx = Math.min(3, Math.max(0, Math.round(wScore)-1));
+    t.overall.floor = GRADE_LET[compositeIdx];
+
+    // ── Balance indicator: spread of 5 position floors ──
+    const posGrades=[t.qb.floor,t.rb.floor,t.wr.floor,t.te.floor,t.flex.floor];
+    const vals=posGrades.map(g=>GRADE_VAL[g]);
+    const maxV=Math.max(...vals), minV=Math.min(...vals);
+    const spread=maxV-minV; // 0=balanced, 3=extreme spread
+    t.overall.balance = spread===0?'even':spread===1?'steady':spread===2?'uneven':'lopsided';
+    t.overall.posFloors = posGrades; // store for display
+
+    // Clean up temp keys
+    delete t._fcQB; delete t._fcRB; delete t._fcWR; delete t._fcTE; delete t._fcFlex;
+  });
 }
 // ── SLEEPER PLAYER AGES ───────────────────────────────────────────────────────
 // Ages are derived dynamically from Sleeper's player database (birth_date field)
@@ -934,6 +1034,18 @@ function renderOverview(c){
                   <span style="font-family:'DM Mono',monospace;font-size:10px;color:#666">Ceil <span style="color:#aaa">${gradeTagInline(t.overall.ceil)}</span></span>
                   ${deltaTag(t.overall.delta)} ${fragTag(t.overall.frag)}
                 </div>
+                ${(()=>{
+                  // Balance indicator — show pos floor spread
+                  const posLabels=['QB','RB','WR','TE','Flex'];
+                  const posFloors=t.overall.posFloors||[t.qb.floor,t.rb.floor,t.wr.floor,t.te.floor,t.flex.floor];
+                  const bal=t.overall.balance||'—';
+                  const balColor=bal==='even'?'#1D9E75':bal==='steady'?'#4a9ede':bal==='uneven'?'#d4950a':'#d06040';
+                  const pips=posLabels.map((lbl,i)=>`<span style="display:flex;flex-direction:column;align-items:center;gap:2px"><span style="font-family:'DM Mono',monospace;font-size:8px;color:#444">${lbl}</span>${gradeTagInline(posFloors[i]||'C')}</span>`).join('');
+                  return`<div style="margin-bottom:10px">
+                    <div style="font-family:'DM Mono',monospace;font-size:9px;color:#444;text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px">Floor Balance <span style="color:${balColor};margin-left:4px">${bal}</span> <span style="color:#444;font-size:9px">· weighted composite</span></div>
+                    <div style="display:flex;gap:8px;align-items:flex-end">${pips}</div>
+                  </div>`;
+                })()}
                 <div style="margin-bottom:12px">${windowTag(t.window)}<span style="font-size:11px;color:#555;margin-left:8px">${t.windowNote}</span></div>
                 <div class="det-label">Needs</div>
                 <div class="trade-need" style="margin-bottom:10px">${t.needs.map(n=>`<span class="need-pill">${n}</span>`).join('')}</div>
@@ -1751,6 +1863,17 @@ function renderRoster(c){
       <div class="grade-cell"><div class="grade-cell-label">Profile</div>${fragTag(team.overall.frag)}</div>
       <div class="grade-cell"><div class="grade-cell-label">Window</div>${windowTag(team.window)}</div>
     </div>
+    ${(()=>{
+      const posLabels=['QB','RB','WR','TE','Flex'];
+      const posFloors=team.overall.posFloors||[team.qb.floor,team.rb.floor,team.wr.floor,team.te.floor,team.flex.floor];
+      const bal=team.overall.balance||'—';
+      const balColor=bal==='even'?'#1D9E75':bal==='steady'?'#4a9ede':bal==='uneven'?'#d4950a':'#d06040';
+      const pips=posLabels.map((lbl,i)=>`<span style="display:flex;flex-direction:column;align-items:center;gap:2px"><span style="font-family:'DM Mono',monospace;font-size:8px;color:#444">${lbl}</span>${gradeTagInline(posFloors[i]||'C')}</span>`).join('');
+      return`<div style="margin-bottom:10px">
+        <div style="font-family:'DM Mono',monospace;font-size:9px;color:#444;text-transform:uppercase;letter-spacing:.08em;margin-bottom:5px">Floor Balance <span style="color:${balColor};margin-left:4px">${bal}</span></div>
+        <div style="display:flex;gap:8px;align-items:flex-end">${pips}</div>
+      </div>`;
+    })()}
     <div class="philosophy">${team.philosophy}</div>
   </div>
   <div class="divider"></div>
@@ -1763,33 +1886,54 @@ function renderRoster(c){
 // ── RE-ASSESS COPY PROMPT ─────────────────────────────────────────────────────
 function copyReassessPrompt(){
   const weekContext = currentWeek > 0
-    ? `The current week is ${currentWeek}. Assess floor grades based on the current state of each roster as of week ${currentWeek} — not week 1 projections. Account for players who have emerged, been injured, or lost roles since the season started. A player on IR or with a reduced role should not be treated as a starter.`
-    : `This is preseason. Assess floor grades based on projected week 1 depth charts, training camp information, and current roster construction.`;
+    ? `The current week is ${currentWeek}. Assess ceiling grades based on the current state of each roster as of week ${currentWeek}. Account for players who have emerged, been injured, or lost roles since the season started.`
+    : `This is preseason. Assess ceiling grades based on projected depth charts, training camp information, and current roster construction.`;
 
-  const rosterSummary=TEAMS.map(t=>`${t.name} (id:${t.id}): QB=${t.qb.starters.concat(t.qb.depth).join(', ')} | RB=${t.rb.starters.concat(t.rb.depth).join(', ')} | WR=${t.wr.starters.concat(t.wr.depth).join(', ')} | TE=${t.te.starters.concat(t.te.depth).join(', ')}`).join('\n');
+  // Build roster summary with FC values included for context
+  const rosterSummary=TEAMS.map(t=>{
+    const playerStr=(players)=>players.map(p=>{
+      const fc=getKTCValue(p);
+      const name=p.split(' (')[0];
+      return fc>0?`${name}[FC:${fc}]`:name;
+    }).join(', ');
+    return`${t.name} (id:${t.id}):
+  QB/SF: ${playerStr(t.qb.starters.concat(t.qb.depth))}
+  RB starters: ${playerStr(t.rb.starters)} | RB depth: ${playerStr(t.rb.depth)||'none'}
+  WR starters: ${playerStr(t.wr.starters)} | WR depth: ${playerStr(t.wr.depth)||'none'}
+  TE starters: ${playerStr(t.te.starters)} | TE depth: ${playerStr(t.te.depth)||'none'}`;
+  }).join('\n\n');
 
   const prompt=`You are a dynasty fantasy football analyst. Evaluate these 12 rosters for a dynasty superflex TE-premium league.
 
 LEAGUE FORMAT: 12 teams · 1 QB · 1 Superflex (QB/RB/WR/TE) · 2 RB · 3 WR · 2 Flex (WR/RB/TE) · 1 TE · FFPC TE-premium scoring. Starters always fill positional slots first before flex slots.
 
+IMPORTANT — WHAT THIS PROMPT GENERATES:
+Floor grades are now computed automatically from FantasyCalc values. DO NOT generate floor grades. Your job is to assess CEILING grades, probability, fragility, window, philosophy, needs, and surplus ONLY.
+
+CEILING GRADE FRAMEWORK:
+- Ceiling = realistic best case if at least one player hits their upside — NOT a guarantee, but plausible
+- For ceiling grades, PAY SPECIAL ATTENTION to players whose FantasyCalc value [FC:XXXX] appears low relative to their real-world opportunity and situation. FC values are market-consensus and often LAG behind emerging situations.
+- A player with FC:1200 in a breakout situation (e.g., newly installed as TE1 on a pass-heavy offense) may have S-tier ceiling even though their market value is depressed
+- Weight SITUATION and OPPORTUNITY heavily for depth players when assessing ceiling — role clarity, target share potential, offensive scheme fit, and age trajectory matter more than current market value for ceiling grades
+- If you have access to recent news, beat reporter updates, or depth chart information suggesting a player is in a better position than their FC value implies, factor this in and note it in the philosophy
+
 EVALUATION FRAMEWORK:
 - Use dynasty context only — player age, trajectory, and long-term value matter heavily
 - Superflex format means QB value is elevated; a weak QB/SF combination is a significant weekly handicap
 - TE premium scoring increases TE value, especially for receiving TEs
-- Floor grades = current realistic weekly production for the position group
-- Ceiling grades = realistic best case if at least one player hits their upside (not all players)
 - Probability = likelihood that AT LEAST ONE player in the group reaches ceiling (not all)
-- Fragility: fragile = strong starters, little depth; robust = strong starters with real depth; antifragile = depth backs/players positioned to inherit workload from other teams' injuries, gets stronger as season progresses
+- Fragility: fragile = strong starters, little depth; robust = strong starters with real depth; antifragile = depth backs/players positioned to inherit workload from other teams' injuries
 - Championship window: open = contending now; opening = 1-2 years away; retool = need to trade aging assets for youth; rebuild = starting over
 - Prime concern = true if a significant portion of key players are past or near the end of their prime
+- Flex ceiling covers ALL non-starter, non-QB depth players pooled (RB/WR/TE depth combined)
 
 ${weekContext}
 
-CURRENT ROSTERS:
+CURRENT ROSTERS (FC values shown in brackets where available — use as context, not as ceiling):
 ${rosterSummary}
 
 Return ONLY a valid JSON array with no markdown, no explanation, no preamble. Use this exact structure:
-[{"id":"teamid","qbFloor":"B","qbCeil":"S","qbProb":"High","qbFrag":"robust","rbFloor":"C","rbCeil":"A","rbProb":"High","rbFrag":"antifragile","wrFloor":"S","wrCeil":"S","wrProb":"High","wrFrag":"robust","teFloor":"A","teCeil":"S","teProb":"Medium","teFrag":"robust","flexFloor":"A","flexCeil":"S","flexProb":"High","flexFrag":"antifragile","flexNote":"WR/TE overflow driven","flexDepthFloor":"A","flexDepthCeil":"S","flexDepthFrag":"antifragile","flexDepthNote":"RB depth inherits league injuries","overallFloor":"A","overallCeil":"S","overallDelta":"moderate","overallFrag":"antifragile","window":"open","windowNote":"Brief note under 15 words","primeConcern":false,"philosophy":"3-4 sentence philosophy covering construction strategy, strengths, vulnerabilities, and fragility profile","needs":["RB proven"],"surplus":["WR depth","Draft picks"]}]
+[{"id":"teamid","qbCeil":"S","qbProb":"High","qbFrag":"robust","rbCeil":"A","rbProb":"High","rbFrag":"antifragile","wrCeil":"S","wrProb":"High","wrFrag":"robust","teCeil":"S","teProb":"Medium","teFrag":"robust","flexCeil":"S","flexProb":"High","flexFrag":"antifragile","flexNote":"WR/TE overflow driven","flexDepthCeil":"S","flexDepthFrag":"antifragile","flexDepthNote":"RB depth inherits league injuries","overallCeil":"S","overallDelta":"moderate","overallFrag":"antifragile","window":"open","windowNote":"Brief note under 15 words","primeConcern":false,"philosophy":"3-4 sentence philosophy covering construction strategy, strengths, vulnerabilities, fragility profile, and any notable breakout candidates whose FC value may be lagging their opportunity","needs":["RB proven"],"surplus":["WR depth","Draft picks"]}]
 
 Grade scale: S=Elite, A=Strong, B=Average, C=Weak
 Fragility: fragile, robust, antifragile
@@ -1837,32 +1981,26 @@ function processImportResults(){
     results.forEach(r=>{
       const team=TEAMS.find(t=>t.id===r.id);
       if(!team)return;
-      if(r.qbFloor)team.qb.floor=r.qbFloor;
+      // Floor grades are now computed from FC values — never overwrite from prompt
       if(r.qbCeil)team.qb.ceil=r.qbCeil;
       if(r.qbProb)team.qb.prob=r.qbProb;
       if(r.qbFrag)team.qb.frag=r.qbFrag;
-      if(r.rbFloor)team.rb.floor=r.rbFloor;
       if(r.rbCeil)team.rb.ceil=r.rbCeil;
       if(r.rbProb)team.rb.prob=r.rbProb;
       if(r.rbFrag)team.rb.frag=r.rbFrag;
-      if(r.wrFloor)team.wr.floor=r.wrFloor;
       if(r.wrCeil)team.wr.ceil=r.wrCeil;
       if(r.wrProb)team.wr.prob=r.wrProb;
       if(r.wrFrag)team.wr.frag=r.wrFrag;
-      if(r.teFloor)team.te.floor=r.teFloor;
       if(r.teCeil)team.te.ceil=r.teCeil;
       if(r.teProb)team.te.prob=r.teProb;
       if(r.teFrag)team.te.frag=r.teFrag;
-      if(r.flexFloor)team.flex.floor=r.flexFloor;
       if(r.flexCeil)team.flex.ceil=r.flexCeil;
       if(r.flexProb)team.flex.prob=r.flexProb;
       if(r.flexFrag)team.flex.frag=r.flexFrag;
       if(r.flexNote)team.flex.note=r.flexNote;
-      if(r.flexDepthFloor)team.flexDepth.floor=r.flexDepthFloor;
       if(r.flexDepthCeil)team.flexDepth.ceil=r.flexDepthCeil;
       if(r.flexDepthFrag)team.flexDepth.frag=r.flexDepthFrag;
       if(r.flexDepthNote)team.flexDepth.note=r.flexDepthNote;
-      if(r.overallFloor)team.overall.floor=r.overallFloor;
       if(r.overallCeil)team.overall.ceil=r.overallCeil;
       if(r.overallDelta)team.overall.delta=r.overallDelta;
       if(r.overallFrag)team.overall.frag=r.overallFrag;
@@ -2027,6 +2165,7 @@ function processCsvImport(){
 
   const modeLabel = mode === 'full' ? 'rosters + stats' : 'rosters';
   statusEl.innerHTML=`<span style="color:#1D9E75">Updated ${modeLabel} for ${teamsUpdated} teams (${rowCount} players). Use Copy Re-Assess Prompt to refresh grades.</span>`;
+  computeFloorGrades();
   csvFileData = null;
   g('csvFileInput').value = '';
   g('csvFileLabel').textContent = 'Choose CSV file or click to browse';
@@ -2034,6 +2173,9 @@ function processCsvImport(){
 }
 
 window.addEventListener('DOMContentLoaded',()=>{
+  if(loadKTCFromCache()&&!ktcCacheIsStale()){
+    computeFloorGrades();
+  }
   renderOverview(g('mainContent'));
   loadKTC();
   loadSleeperAges();
