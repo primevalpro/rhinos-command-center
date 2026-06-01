@@ -334,9 +334,10 @@ const TEAMS = [
     overall:{floor:'A',ceil:'S',delta:'moderate',frag:'antifragile'},
     window:'open',windowNote:'Maye Year 3 + elite WR corps. Window opens fully when 1-2 RBs emerge.',primeConcern:false,
     philosophy:'The most deliberately constructed roster in the league. Dominant at every pass-catching position with a franchise QB in Maye, yet intentionally thin at RB week 1. The antifragile backfield is the core bet — as injuries accumulate this roster gets stronger. If two or three depth backs inherit roles mid-season, this becomes the best team in the league.',
-    needs:['RB proven'],surplus:['WR depth','TE depth','Draft picks'],
+    needs:['RB proven starter'],surplus:['WR depth','TE upside','Draft picks'],
     age:{QB:23,RB:23,WR:26,TE:24},
-    picks2027:['R1','R2','R3','R4','R5','R6','R7']
+    picks2027:['R1','R2','R3','R4','R5','R6','R7'],
+    powerRank:2,powerRationale:'Elite WR/TE corps with franchise QB. Up: RB depth inherits roles. Down: Maye regression or key WR injury.'
   },
   {
     id:'bookends',name:'Buffalo Bookends 30',us:false,rostered:19,
@@ -1701,11 +1702,21 @@ function renderPower(c){
       <div style="font-size:12px;color:#444;margin-top:10px;line-height:1.6">Use Full Import with your FFPC CSV to generate mid-season power rankings.</div>
     </div>`;
   } else {
-    const ranks=isMid&&statsData?getMidseasonRanks():powerRankings.map(id=>PRESEASON_RANKS.find(r=>r.id===id)||{id,rationale:''});
+    const ranks=isMid&&statsData?getMidseasonRanks():powerRankings.map(id=>{
+      const team=TEAMS.find(t=>t.id===id);
+      const preseason=PRESEASON_RANKS.find(r=>r.id===id)||{id,rationale:''};
+      // Use re-assess rationale if available, fall back to preseason
+      return{...preseason, rationale: team?.powerRationale||preseason.rationale};
+    });
     html+=`<div id="rankList">`;
     ranks.forEach((r,i)=>{
       const team=TEAMS.find(t=>t.id===r.id);
       if(!team)return;
+      // Parse up/down triggers from rationale if present (format: "text. Up: x. Down: y.")
+      const rationale=r.rationale||'';
+      const upMatch=rationale.match(/Up:\s*([^.]+)/i);
+      const downMatch=rationale.match(/Down:\s*([^.]+)/i);
+      const mainText=rationale.replace(/Up:[^.]+\./i,'').replace(/Down:[^.]+\./i,'').trim();
       html+=`<div class="rank-item ${team.us?'us':''}" draggable="${!isMid}" id="rank-${r.id}" data-id="${r.id}"
         ondragstart="dragStart(event)" ondragover="dragOver(event)" ondrop="drop(event)" ondragend="dragEnd(event)">
         <div class="rank-num ${i<3?'top3':''}">${i+1}</div>
@@ -1715,7 +1726,11 @@ function renderPower(c){
             <span style="margin-left:8px">${gradeTag(team.overall.floor)}→${gradeTag(team.overall.ceil)}</span>
             <span style="margin-left:6px">${windowTag(team.window)}</span>
           </div>
-          <div class="rank-rationale">${isMid&&r.score?`Score: ${r.score.toFixed(1)} · ${r.rationale}`:(r.rationale||'')}</div>
+          <div class="rank-rationale">${isMid&&r.score?`Score: ${r.score.toFixed(1)} · `:''} ${mainText}</div>
+          ${(upMatch||downMatch)?`<div style="display:flex;gap:8px;margin-top:4px;flex-wrap:wrap">
+            ${upMatch?`<span style="font-family:'DM Mono',monospace;font-size:9px;padding:2px 6px;border-radius:3px;background:#0a3d28;color:#1D9E75">▲ ${upMatch[1].trim()}</span>`:''}
+            ${downMatch?`<span style="font-family:'DM Mono',monospace;font-size:9px;padding:2px 6px;border-radius:3px;background:#3a1510;color:#d06040">▼ ${downMatch[1].trim()}</span>`:''}
+          </div>`:''}
         </div>
         <div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end">${fragTag(team.overall.frag)}</div>
       </div>`;
@@ -1889,12 +1904,25 @@ function renderRoster(c){
 
 // ── RE-ASSESS COPY PROMPT ─────────────────────────────────────────────────────
 function copyReassessPrompt(){
-  const weekContext = currentWeek > 0
-    ? `The current week is ${currentWeek}. Assess ceiling grades based on the current state of each roster as of week ${currentWeek}. Account for players who have emerged, been injured, or lost roles since the season started.`
-    : `This is preseason. Assess ceiling grades based on projected depth charts, training camp information, and current roster construction.`;
+  // ── Dynamic season context ──
+  const now = new Date();
+  const month = now.getMonth() + 1; // 1-12
+  const year = now.getFullYear();
+  // NFL season runs roughly Sept(9) through Jan(1) of following year
+  const inSeason = currentWeek > 0;
+  const calendarInSeason = (month >= 9 || month === 1);
+  let seasonContext;
+  if(inSeason){
+    seasonContext = `The current NFL season is ${year}. It is Week ${currentWeek} of the active season. Assess ceiling grades based on the current state of each roster as of Week ${currentWeek}. Account for players who have emerged, been injured, or lost roles since the season started. Do not treat players on IR or with reduced roles as starters.`;
+  } else if(calendarInSeason){
+    seasonContext = `The current NFL season is ${year}. The season is active but no week data has been imported yet. Assess ceiling grades based on current depth charts and available information.`;
+  } else {
+    const nextSeason = month >= 2 ? year : year - 1;
+    seasonContext = `The current NFL season is ${nextSeason}. This is the preseason — the ${nextSeason} NFL season has not yet begun. Assess ceiling grades based on projected depth charts, training camp reports, and current roster construction. Do not assume any player's role based on prior seasons — verify against current depth chart information.`;
+  }
 
-  // Build roster summary with FC values included for context
-  const rosterSummary=TEAMS.map(t=>{
+  // ── Roster summary — owner-blind, no stars, no ownership markers ──
+  const rosterSummary = TEAMS.map(t=>{
     const playerStr=(players)=>players.map(p=>{
       const fc=getKTCValue(p);
       const name=p.split(' (')[0];
@@ -1907,38 +1935,59 @@ function copyReassessPrompt(){
   TE starters: ${playerStr(t.te.starters)} | TE depth: ${playerStr(t.te.depth)||'none'}`;
   }).join('\n\n');
 
-  const prompt=`You are a dynasty fantasy football analyst. Evaluate these 12 rosters for a dynasty superflex TE-premium league.
+  const prompt=`You are an objective dynasty fantasy football analyst evaluating 12 rosters for a dynasty superflex TE-premium league. You have no rooting interest in any team — evaluate all 12 with equal rigor and intellectual honesty. If a team has structural weaknesses, state them directly regardless of how strong their skill position talent appears.
 
 LEAGUE FORMAT: 12 teams · 1 QB · 1 Superflex (QB/RB/WR/TE) · 2 RB · 3 WR · 2 Flex (WR/RB/TE) · 1 TE · FFPC TE-premium scoring. Starters always fill positional slots first before flex slots.
 
+${seasonContext}
+
 IMPORTANT — WHAT THIS PROMPT GENERATES:
-Floor grades are now computed automatically from FantasyCalc values. DO NOT generate floor grades. Your job is to assess CEILING grades, probability, fragility, window, philosophy, needs, and surplus ONLY.
+Floor grades are computed automatically from FantasyCalc values — DO NOT generate floor grades. Generate ONLY: ceiling grades, probability, fragility, window, philosophy, needs, surplus, and power rankings.
+
+BEFORE GENERATING GRADES — RESEARCH STEP:
+Search for recent news, training camp reports, beat reporter updates, and depth chart information for depth players with low FC values relative to their roster situation. Pay particular attention to:
+- Handcuff RBs behind injury-prone or aging starters
+- Young TEs newly installed as TE1 in pass-heavy offenses
+- Receivers in new offensive systems or filling vacated target share
+- Players in legitimate starting job competitions
+Use what you find to inform ceiling grades and philosophy. Do not invent information — only use what you can verify.
 
 CEILING GRADE FRAMEWORK:
-- Ceiling = realistic best case if at least one player hits their upside — NOT a guarantee, but plausible
-- For ceiling grades, PAY SPECIAL ATTENTION to players whose FantasyCalc value [FC:XXXX] appears low relative to their real-world opportunity and situation. FC values are market-consensus and often LAG behind emerging situations.
-- A player with FC:1200 in a breakout situation (e.g., newly installed as TE1 on a pass-heavy offense) may have S-tier ceiling even though their market value is depressed
-- Weight SITUATION and OPPORTUNITY heavily for depth players when assessing ceiling — role clarity, target share potential, offensive scheme fit, and age trajectory matter more than current market value for ceiling grades
-- If you have access to recent news, beat reporter updates, or depth chart information suggesting a player is in a better position than their FC value implies, factor this in and note it in the philosophy
-- IMPORTANT: Never include FC bracket notation (e.g. FC:8785) in philosophy text or any output fields. FC values are for your internal context only — write philosophy in clean natural prose without referencing raw numbers
+- Ceiling = realistic best case if at least one player hits their upside — plausible, not guaranteed
+- FC values are market consensus and often LAG behind emerging situations — a low FC value does not mean low ceiling if the situation says otherwise
+- Weight SITUATION and OPPORTUNITY heavily for depth players: role clarity, target share potential, scheme fit, and age trajectory matter more than current market value
+- Identify players fitting these specific upside categories and note them in philosophy:
+  · Handcuff upside — depth player behind injury-prone or aging starter
+  · Competition upside — legitimate training camp battle where winning = breakout
+  · Opportunity upside — weak depth chart, touches/targets clearly available
+  · Scheme upside — skillset fits new coach/system particularly well
+- NEVER include FC bracket notation (e.g. FC:8785) in any output field — FC values are internal context only, write all output in clean natural prose
+
+DATA INTEGRITY RULES:
+- Draw conclusions only from the roster data and FC values provided plus what you find in your research
+- Do not assume years of experience, current depth chart status, injury history, or team situations not present in the provided data or your research
+- If you are uncertain about a player's current role or situation, be conservative in the ceiling grade rather than assuming
 
 EVALUATION FRAMEWORK:
-- Use dynasty context only — player age, trajectory, and long-term value matter heavily
-- Superflex format means QB value is elevated; a weak QB/SF combination is a significant weekly handicap
-- TE premium scoring increases TE value, especially for receiving TEs
-- Probability = likelihood that AT LEAST ONE player in the group reaches ceiling (not all)
-- Fragility: fragile = strong starters, little depth; robust = strong starters with real depth; antifragile = depth backs/players positioned to inherit workload from other teams' injuries
-- Championship window: open = contending now; opening = 1-2 years away; retool = need to trade aging assets for youth; rebuild = starting over
-- Prime concern = true if a significant portion of key players are past or near the end of their prime
-- Flex ceiling covers ALL non-starter, non-QB depth players pooled (RB/WR/TE depth combined)
+- Dynasty context only — age, trajectory, and long-term value matter heavily
+- Superflex format: QB value is elevated, a weak QB/SF combination is a significant weekly handicap
+- TE premium scoring increases TE value, especially receiving TEs
+- Probability = likelihood AT LEAST ONE player in the group reaches ceiling
+- Fragility: fragile = strong starters little depth · robust = strong starters with real depth · antifragile = depth players positioned to inherit workload from other teams' injuries
+- Window: open = contending now · opening = 1-2 years away · retool = trade aging assets for youth · rebuild = starting over
+- Prime concern = true if significant portion of key players are past or near end of prime
+- Flex ceiling = ALL non-starter non-QB depth players pooled (RB/WR/TE depth combined)
 
-${weekContext}
+POWER RANKINGS:
+Rank all 12 teams 1-12 based on overall dynasty outlook combining: ceiling, window, QB situation, roster construction, and upside. Be objective — rank teams purely on merit. For each team provide:
+- powerRank: integer 1-12 (1 = best)
+- powerRationale: one sentence current justification + one specific thing that moves them UP + one specific thing that moves them DOWN. Keep under 30 words total.
 
-CURRENT ROSTERS (FC values shown in brackets where available — use as context, not as ceiling):
+CURRENT ROSTERS (FC values shown in brackets — internal context only, do not reference in output):
 ${rosterSummary}
 
-Return ONLY a valid JSON array with no markdown, no explanation, no preamble. Use this exact structure:
-[{"id":"teamid","qbCeil":"S","qbProb":"High","qbFrag":"robust","rbCeil":"A","rbProb":"High","rbFrag":"antifragile","wrCeil":"S","wrProb":"High","wrFrag":"robust","teCeil":"S","teProb":"Medium","teFrag":"robust","flexCeil":"S","flexProb":"High","flexFrag":"antifragile","flexNote":"WR/TE overflow driven","flexDepthCeil":"S","flexDepthFrag":"antifragile","flexDepthNote":"RB depth inherits league injuries","overallCeil":"S","overallDelta":"moderate","overallFrag":"antifragile","window":"open","windowNote":"Brief note under 15 words","primeConcern":false,"philosophy":"3-4 sentence philosophy covering construction strategy, strengths, vulnerabilities, fragility profile, and any notable breakout candidates whose FC value may be lagging their opportunity","needs":["RB proven"],"surplus":["WR depth","Draft picks"]}]
+Return ONLY a valid JSON array with no markdown, no explanation, no preamble. Use this exact structure for all 12 teams:
+[{"id":"teamid","qbCeil":"S","qbProb":"High","qbFrag":"robust","rbCeil":"A","rbProb":"High","rbFrag":"antifragile","wrCeil":"S","wrProb":"High","wrFrag":"robust","teCeil":"S","teProb":"Medium","teFrag":"robust","flexCeil":"S","flexProb":"High","flexFrag":"antifragile","flexNote":"WR/TE overflow driven","flexDepthCeil":"S","flexDepthFrag":"antifragile","flexDepthNote":"RB depth inherits league injuries","overallCeil":"S","overallDelta":"moderate","overallFrag":"antifragile","window":"open","windowNote":"Brief note under 15 words","primeConcern":false,"philosophy":"3-4 sentences: construction strategy, strengths, vulnerabilities, fragility profile, and any upside candidates identified in research","needs":["RB proven"],"surplus":["WR depth","Draft picks"],"powerRank":1,"powerRationale":"Best QB room in league. Up: RB1 emerges. Down: QB injury."}]
 
 Grade scale: S=Elite, A=Strong, B=Average, C=Weak
 Fragility: fragile, robust, antifragile
@@ -2015,7 +2064,19 @@ function processImportResults(){
       if(r.philosophy)team.philosophy=r.philosophy;
       if(r.needs)team.needs=r.needs;
       if(r.surplus)team.surplus=r.surplus;
+      // Power rankings
+      if(r.powerRank)team.powerRank=r.powerRank;
+      if(r.powerRationale)team.powerRationale=r.powerRationale;
     });
+
+    // Reorder powerRankings array if powerRank fields were provided
+    const hasRankData=results.some(r=>r.powerRank);
+    if(hasRankData){
+      const ranked=TEAMS.filter(t=>t.powerRank).sort((a,b)=>a.powerRank-b.powerRank);
+      if(ranked.length===TEAMS.length){
+        powerRankings=ranked.map(t=>t.id);
+      }
+    }
     g('resultsImportStatus').innerHTML=`<span style="color:#1D9E75">Updated ${results.length} teams successfully.</span>`;
     setTimeout(()=>{closeModal('modalImportResults');renderOverview(g('mainContent'));},1200);
   }catch(err){
