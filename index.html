@@ -5170,13 +5170,6 @@ function renderWinTheFlex(c){
 
 // ── DYNASTY CLOCK ─────────────────────────────────────────────────────────────
 function renderDynastyClock(c){
-  const BARS={
-    winnow:{left:0,width:30,label:'Win Now'},
-    open:{left:0,width:60,label:'Contending'},
-    opening:{left:20,width:60,label:'Rising'},
-    retool:{left:0,width:45,label:'Retooling'},
-    rebuild:{left:40,width:58,label:'Rebuilding'},
-  };
   const WCOLORS={winnow:'#ff6040',open:'#1D9E75',opening:'#4a9ede',retool:'#d4950a',rebuild:'#888'};
   const WLABELS={winnow:'Win Now',open:'Contending',opening:'Rising',retool:'Retooling',rebuild:'Rebuilding'};
   const YEARS=[2026,2027,2028,2029,2030,2031];
@@ -5195,6 +5188,15 @@ function renderDynastyClock(c){
       ...t.wr.starters.map(p=>({p,pos:'WR'})),...t.wr.depth.map(p=>({p,pos:'WR'})),
       ...t.te.starters.map(p=>({p,pos:'TE'})),...t.te.depth.map(p=>({p,pos:'TE'}))
     ].map(item=>({...item,fcVal:getFCValue(item.p)||0})).filter(item=>item.fcVal>0).sort((a,b)=>b.fcVal-a.fcVal).slice(0,3);
+  }
+
+  function calcWindowSpan(t){
+    const primeEnd={QB:36,WR:30,TE:33,RB:27};
+    const weights={QB:0.35,WR:0.25,TE:0.20,RB:0.20};
+    const weighted=Object.keys(weights).reduce((s,p)=>s+weights[p]*Math.max(0,primeEnd[p]-(t.age[p]||0)),0);
+    const dur=Math.max(1,Math.min(5,Math.round(weighted*2)/2));
+    const startMap={winnow:2026,open:2026,retool:2026,opening:2027,rebuild:2028};
+    return{startYear:startMap[t.window]||2026,duration:dur};
   }
 
   const sortedTeams=[...TEAMS].sort((a,b)=>(a.powerRank||99)-(b.powerRank||99));
@@ -5217,8 +5219,13 @@ function renderDynastyClock(c){
   // Team rows
   html+=`<div style="display:flex;flex-direction:column;gap:3px">`;
   sortedTeams.forEach((t,i)=>{
-    const bar=BARS[t.window]||BARS.open;
+    const barLabel=WLABELS[t.window]||t.window;
     const barColor=WCOLORS[t.window]||'#888';
+    const span=calcWindowSpan(t);
+    const barLeft=(span.startYear-2026)/5*100;
+    const barWidth=span.duration/5*100;
+    const isRebuild=t.window==='rebuild';
+    const barStyle=`position:absolute;top:0;bottom:0;left:${barLeft}%;width:${barWidth}%;background:${barColor};border-radius:3px;opacity:${isRebuild?0.4:0.85};${isRebuild?`border:1px dashed ${barColor};box-sizing:border-box;`:''}`;
     const isExp=clockExpandedRows.has(t.id);
     const upside=t.playerUpside||{};
     const top3=getTop3(t);
@@ -5227,8 +5234,8 @@ function renderDynastyClock(c){
     html+=`<div style="background:#161616;border:1px solid ${t.us?'#1D9E75':'#222'};border-radius:6px;overflow:hidden;cursor:pointer" onclick="toggleClockRow('${t.id}')">
       <div style="display:grid;grid-template-columns:190px 1fr 190px;gap:0;align-items:center;padding:7px 10px">
         <div style="display:flex;align-items:center;gap:5px"><span style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;color:#2a2a2a;min-width:22px">${i+1}</span><span style="font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:600;color:${t.us?'#1D9E75':'#bbb'}">${t.us?'★ ':''}${t.name}</span></div>
-        <div style="padding:0 8px"><div style="height:12px;background:#0a0a0a;border:1px solid #1a1a1a;border-radius:3px;position:relative;overflow:hidden"><div style="position:absolute;top:0;bottom:0;left:${bar.left}%;width:${bar.width}%;background:${barColor};border-radius:3px;opacity:.85"></div></div></div>
-        <div style="padding-left:8px;display:flex;align-items:center;gap:5px"><span style="font-family:'DM Mono',monospace;font-size:9px;font-weight:700;color:${barColor}">${bar.label}</span><span style="font-size:9px;color:#3a3a3a" title="${(t.windowNote||'').replace(/"/g,'&quot;')}">${shortNote}</span></div>
+        <div style="padding:0 8px"><div style="height:12px;background:#0a0a0a;border:1px solid #1a1a1a;border-radius:3px;position:relative;overflow:hidden"><div style="${barStyle}"></div></div></div>
+        <div style="padding-left:8px;display:flex;align-items:center;gap:5px"><span style="font-family:'DM Mono',monospace;font-size:9px;font-weight:700;color:${barColor}">${barLabel}</span><span style="font-size:9px;color:#3a3a3a" title="${(t.windowNote||'').replace(/"/g,'&quot;')}">${shortNote}</span></div>
       </div>
       ${expandedHtml}
     </div>`;
