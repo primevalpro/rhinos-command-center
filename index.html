@@ -4813,6 +4813,7 @@ function processImportResults(){
     }
     g('resultsImportStatus').innerHTML=`<span style="color:#1D9E75">Updated ${results.length} teams successfully.</span>`;
     saveAssessData();
+    g('resultsImportText').value='';
     setTimeout(()=>{closeModal('modalImportResults');renderOverview(g('mainContent'));},1200);
   }catch(err){
     g('resultsImportStatus').innerHTML=`<span style="color:#d06040">Parse error: ${err.message}. Make sure you paste the raw JSON.</span>`;
