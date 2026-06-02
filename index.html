@@ -865,6 +865,13 @@ let powerExpandedRows=new Set();
 // FC pick values parsed from API response
 let fcPickValues={}; // {1:3500, 2:1800, ...}
 
+// ── OVERVIEW LENS TOGGLES ────────────────────────────────────────────────────
+const LENSES_STORAGE_KEY='rhinos_overview_lenses';
+const FC_TRENDS_SNAPSHOT_KEY='rhinos_fc_trends_snapshot';
+const FC_TRENDS_SNAPSHOT_TS_KEY='rhinos_fc_trends_snapshot_ts';
+const FC_TRENDS_MAX_AGE_MS=7*24*60*60*1000;
+let overviewLenses=(()=>{try{const s=localStorage.getItem(LENSES_STORAGE_KEY);if(s){const p=JSON.parse(s);const l={grades:!!p.grades,fragility:!!p.fragility,ages:!!p.ages,trends:!!p.trends,upside:!!p.upside};showAges=l.ages;return l;}}catch(e){}return{grades:false,fragility:false,ages:false,trends:false,upside:false};})();
+
 // ── FC VALUE LOADER ──────────────────────────────────────────────────────────
 const FC_STORAGE_KEY='rhinos_fc_values';
 const FC_TS_KEY='rhinos_fc_timestamp';
@@ -1259,22 +1266,92 @@ function indDepth(f){const k=f==='antifragile'?'AF':f==='robust'?'R':'F';return`
 function posIndicators(pos){
   return`<div class="pos-indicators">${indGrade(pos.floor)}<span class="ind-arrow">→</span>${indGrade(pos.ceil)}<span class="ind-sep">·</span>${indProb(pos.prob)}<span class="ind-sep">·</span>${indDepth(pos.frag)}</div>`
 }
+function toggleOverviewLens(lens){
+  overviewLenses[lens]=!overviewLenses[lens];
+  if(lens==='ages')showAges=overviewLenses.ages;
+  try{localStorage.setItem(LENSES_STORAGE_KEY,JSON.stringify(overviewLenses));}catch(e){}
+  renderOverview(g('mainContent'));
+}
+function manageFCTrendsSnapshot(){
+  if(!fcLoaded||Object.keys(fcValues).length===0)return;
+  try{
+    const ts=localStorage.getItem(FC_TRENDS_SNAPSHOT_TS_KEY);
+    const isStale=!ts||(Date.now()-parseInt(ts))>FC_TRENDS_MAX_AGE_MS;
+    if(isStale){
+      localStorage.setItem(FC_TRENDS_SNAPSHOT_KEY,JSON.stringify(fcValues));
+      localStorage.setItem(FC_TRENDS_SNAPSHOT_TS_KEY,String(Date.now()));
+    }
+  }catch(e){}
+}
+function getSnapshotValues(){
+  try{const raw=localStorage.getItem(FC_TRENDS_SNAPSHOT_KEY);if(raw)return JSON.parse(raw);}catch(e){}
+  return{};
+}
 
 // ── OVERVIEW ──────────────────────────────────────────────────────────────────
 function renderOverview(c){
   const filtered=TEAMS.filter(t=>overviewFilter==='all'||t.window===overviewFilter);
 
+  manageFCTrendsSnapshot();
+  const snapshotVals=getSnapshotValues();
+
+  // Inline pos header: render grade chips and/or frag badge per active lens
+  const lensedPosHdr=(pos)=>{
+    if(!overviewLenses.grades&&!overviewLenses.fragility)return'';
+    let inner='';
+    if(overviewLenses.grades)inner+=`${indGrade(pos.floor)}<span class="ind-arrow">→</span>${indGrade(pos.ceil)}`;
+    if(overviewLenses.grades&&overviewLenses.fragility)inner+='<span class="ind-sep">·</span>';
+    if(overviewLenses.fragility)inner+=indDepth(pos.frag);
+    return`<div class="pos-indicators" style="margin-bottom:4px">${inner}</div>`;
+  };
+
+  // Player item with age/trend/upside badges driven by active lenses
+  const oPlayerItem=(p,isStarter,upsideMap)=>{
+    const name=p.split(' (')[0];
+    const nfl=p.match(/\(([^)]+)\)/)?.[1]||'';
+    const age=showAges?getPlayerAge(p):null;
+    const ageHtml=age?`<span style="font-family:'DM Mono',monospace;font-size:9px;padding:1px 4px;border-radius:3px;background:#1e2a1e;color:#4a8c60;margin-left:2px">${age}</span>`:'';
+    let trendHtml='';
+    if(overviewLenses.trends){
+      const clean=name.toLowerCase().trim();
+      const cur=fcValues[clean]||0;
+      const snap=snapshotVals[clean]||0;
+      if(cur&&snap){
+        const delta=cur-snap;
+        if(delta>150)trendHtml=`<span style="font-family:'DM Mono',monospace;font-size:9px;padding:1px 3px;border-radius:3px;background:#0a3d28;color:#1D9E75;margin-left:2px" title="+${delta} pts">▲</span>`;
+        else if(delta<-150)trendHtml=`<span style="font-family:'DM Mono',monospace;font-size:9px;padding:1px 3px;border-radius:3px;background:#3a1510;color:#d06040;margin-left:2px" title="${delta} pts">▼</span>`;
+      }
+    }
+    let upsideHtml='';
+    if(overviewLenses.upside&&upsideMap){
+      const info=upsideMap[p];
+      if(info&&info.tier==='high')upsideHtml=`<span style="font-family:'DM Mono',monospace;font-size:9px;padding:1px 3px;border-radius:3px;background:#0a3d28;color:#1D9E75;margin-left:2px;cursor:help" title="${info.note||'High upside'}">↑↑</span>`;
+      else if(info&&info.tier==='medium')upsideHtml=`<span style="font-family:'DM Mono',monospace;font-size:9px;padding:1px 3px;border-radius:3px;background:#0a1e3a;color:#4a9ede;margin-left:2px;cursor:help" title="${info.note||'Medium upside'}">↑</span>`;
+    }
+    return`<div class="player-item"><span class="pname ${isStarter?'starter':''}">${name}${ageHtml}${trendHtml}${upsideHtml}</span><span class="pnfl">${nfl}</span></div>`;
+  };
+
   let html=`
-  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:14px">
+  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:10px">
     <div class="filter-row" style="margin:0;gap:6px">
       ${['all','winnow','open','opening','retool','rebuild'].map(f=>`<button class="filter-btn ${overviewFilter===f?'active':''}" onclick="overviewFilter='${f}';renderOverview(g('mainContent'))">${f==='all'?'All Teams':f==='winnow'?'Win Now':f==='open'?'Contending':f==='opening'?'Rising':f==='retool'?'Retooling':f==='rebuild'?'Rebuilding':f}</button>`).join('')}
     </div>
     <div style="display:flex;gap:8px;align-items:center">
-      <button class="btn btn-sm ${showAges?'btn-primary':'btn-secondary'}" onclick="showAges=!showAges;renderOverview(g('mainContent'))" style="font-size:10px">Ages ${showAges?'ON':'OFF'}</button>
+      <button class="btn btn-sm ${showAges?'btn-primary':'btn-secondary'}" onclick="showAges=!showAges;overviewLenses.ages=showAges;try{localStorage.setItem(LENSES_STORAGE_KEY,JSON.stringify(overviewLenses));}catch(e){}renderOverview(g('mainContent'))" style="font-size:10px">Ages ${showAges?'ON':'OFF'}</button>
       <div class="toggle-group">
         <button class="toggle-btn ${overviewMode==='assessment'?'active':''}" onclick="overviewMode='assessment';renderOverview(g('mainContent'))">Assessment</button>
         <button class="toggle-btn ${overviewMode==='assets'?'active':''}" onclick="overviewMode='assets';renderOverview(g('mainContent'))">Assets</button>
       </div>
+    </div>
+  </div>
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+    <span style="font-family:'DM Mono',monospace;font-size:10px;color:#444;letter-spacing:.06em;text-transform:uppercase">Lens</span>
+    <div class="toggle-group">
+      <button class="toggle-btn ${overviewLenses.grades?'active':''}" onclick="toggleOverviewLens('grades')">Grades</button>
+      <button class="toggle-btn ${overviewLenses.fragility?'active':''}" onclick="toggleOverviewLens('fragility')">Fragility</button>
+      <button class="toggle-btn ${overviewLenses.ages?'active':''}" onclick="toggleOverviewLens('ages')">Ages</button>
+      <button class="toggle-btn ${overviewLenses.trends?'active':''}" onclick="toggleOverviewLens('trends')">Trends</button>
+      <button class="toggle-btn ${overviewLenses.upside?'active':''}" onclick="toggleOverviewLens('upside')">Upside</button>
     </div>
   </div>`;
 
@@ -1290,13 +1367,12 @@ function renderOverview(c){
     </tr></thead><tbody id="overviewTbody">`;
 
     filtered.forEach(t=>{
+      const upside=t.playerUpside||{};
       const isExp=expandedRows.has(t.id);
       const symWindow=`sym-${t.window==='winnow'?'winnow':t.window}`;
       const symFrag=`sym-${t.overall.frag==='antifragile'?'anti':t.overall.frag}`;
       const cap=pickCapScore(t.picks2027);
 
-      // Compute display-optimal positional lineup: sort each position's full roster by FC value
-      // so the best players always fill positional starter slots before overflow goes to flex
       const fcSort=arr=>[...arr].sort((a,b)=>(getFCValue(b)||0)-(getFCValue(a)||0));
       const dRB=(()=>{const s=fcSort([...t.rb.starters,...t.rb.depth]);return{starters:s.slice(0,2),depth:s.slice(2)};})();
       const dWR=(()=>{const s=fcSort([...t.wr.starters,...t.wr.depth]);return{starters:s.slice(0,3),depth:s.slice(3)};})();
@@ -1319,47 +1395,44 @@ function renderOverview(c){
           </div>
         </td>
         <td>
-          ${posIndicators(t.qb)}
+          ${lensedPosHdr(t.qb)}
           <div class="player-list">
-            ${t.qb.starters.map(p=>playerItem(p,true,showAges)).join('')}
-            ${t.qb.depth.map(p=>playerItem(p,false,showAges)).join('')}
+            ${t.qb.starters.map(p=>oPlayerItem(p,true,upside)).join('')}
+            ${t.qb.depth.map(p=>oPlayerItem(p,false,upside)).join('')}
           </div>
         </td>
         <td>
-          ${posIndicators(t.rb)}
+          ${lensedPosHdr(t.rb)}
           <div class="player-list">
-            ${dRB.starters.map(p=>playerItem(p,true,showAges)).join('')}
-            ${dRB.depth.map(p=>playerItem(p,false,showAges)).join('')}
+            ${dRB.starters.map(p=>oPlayerItem(p,true,upside)).join('')}
+            ${dRB.depth.map(p=>oPlayerItem(p,false,upside)).join('')}
           </div>
         </td>
         <td>
-          ${posIndicators(t.wr)}
+          ${lensedPosHdr(t.wr)}
           <div class="player-list">
-            ${dWR.starters.map(p=>playerItem(p,true,showAges)).join('')}
-            ${dWR.depth.length>0?`<div class="player-item"><span class="pname">${dWR.depth.map(p=>{const n=p.split(' (')[0];const age=showAges?getPlayerAge(p):null;return n+(age?` <span style="font-family:'DM Mono',monospace;font-size:9px;padding:1px 3px;border-radius:3px;background:#1e2a1e;color:#4a8c60">${age}</span>`:'')} ).join(' · ')}</span></div>`:''}
+            ${dWR.starters.map(p=>oPlayerItem(p,true,upside)).join('')}
+            ${dWR.depth.map(p=>oPlayerItem(p,false,upside)).join('')}
           </div>
         </td>
         <td>
-          ${posIndicators(t.te)}
+          ${lensedPosHdr(t.te)}
           <div class="player-list">
-            ${dTE.starters.map(p=>playerItem(p,true,showAges)).join('')}
-            ${dTE.depth.map(p=>playerItem(p,false,showAges)).join('')}
+            ${dTE.starters.map(p=>oPlayerItem(p,true,upside)).join('')}
+            ${dTE.depth.map(p=>oPlayerItem(p,false,upside)).join('')}
           </div>
         </td>
         <td style="background:#0a1a0e;border-left:2px solid #1a3a22">
-          ${posIndicators(t.flex)}
+          ${lensedPosHdr(t.flex)}
           <div class="player-list">
             ${(()=>{
-              // Position grade as numeric fallback score
               const posGradeScore=(pos)=>({S:4,A:3,B:2,C:1}[t[pos.toLowerCase()]?.floor]||1);
-              // Collect overflow RB/WR/TE after positional slots are filled, sorted by FC value
               const flexPool=[
                 ...dRB.depth.map(p=>({p,pos:'RB',baseScore:posGradeScore('rb')})),
                 ...dWR.depth.map(p=>({p,pos:'WR',baseScore:posGradeScore('wr')})),
                 ...dTE.depth.map(p=>({p,pos:'TE',baseScore:posGradeScore('te')}))
               ].map(item=>{
                 const fcVal=getFCValue(item.p);
-                // FC value scaled to 0-4 range; fallback to position grade
                 const sortScore=fcVal>0?(fcVal/2500)*4:item.baseScore;
                 return{...item,sortScore,fcVal};
               }).sort((a,b)=>b.sortScore-a.sortScore);
@@ -1372,17 +1445,26 @@ function renderOverview(c){
                 const ageHtml=age?`<span style="font-family:'DM Mono',monospace;font-size:9px;padding:1px 4px;border-radius:3px;background:#1e2a1e;color:#4a8c60;margin-left:2px">${age}</span>`:'';
                 const posHtml=`<span class="pos-badge pos-${item.pos}" style="font-size:9px;padding:1px 4px">${item.pos}</span>`;
                 const fcHtml=item.fcVal&&isStarter?`<span style="font-family:'DM Mono',monospace;font-size:9px;color:#4a9ede;margin-left:auto">${item.fcVal}</span>`:'';
-                if(isStarter){
-                  return`<div class="player-item" style="background:#0d2218;border-radius:3px;padding:1px 3px;margin-bottom:1px;gap:4px">${posHtml}<span class="pname starter" style="color:#c8e6c9;flex:1">${name}${ageHtml}</span><span class="pnfl">${nfl}</span>${fcHtml}</div>`;
+                let trendHtml='';
+                if(overviewLenses.trends){
+                  const clean=name.toLowerCase().trim();
+                  const cur=fcValues[clean]||0;
+                  const snap=snapshotVals[clean]||0;
+                  if(cur&&snap){const delta=cur-snap;if(delta>150)trendHtml=`<span style="font-family:'DM Mono',monospace;font-size:9px;padding:1px 3px;border-radius:3px;background:#0a3d28;color:#1D9E75;margin-left:2px" title="+${delta} pts">▲</span>`;else if(delta<-150)trendHtml=`<span style="font-family:'DM Mono',monospace;font-size:9px;padding:1px 3px;border-radius:3px;background:#3a1510;color:#d06040;margin-left:2px" title="${delta} pts">▼</span>`;}
                 }
-                return`<div class="player-item">${posHtml}<span class="pname">${name}${ageHtml}</span><span class="pnfl">${nfl}</span></div>`;
+                let upsideHtml='';
+                if(overviewLenses.upside){const info=upside[item.p];if(info&&info.tier==='high')upsideHtml=`<span style="font-family:'DM Mono',monospace;font-size:9px;padding:1px 3px;border-radius:3px;background:#0a3d28;color:#1D9E75;margin-left:2px;cursor:help" title="${info.note||'High upside'}">↑↑</span>`;else if(info&&info.tier==='medium')upsideHtml=`<span style="font-family:'DM Mono',monospace;font-size:9px;padding:1px 3px;border-radius:3px;background:#0a1e3a;color:#4a9ede;margin-left:2px;cursor:help" title="${info.note||'Medium upside'}">↑</span>`;}
+                if(isStarter){
+                  return`<div class="player-item" style="background:#0d2218;border-radius:3px;padding:1px 3px;margin-bottom:1px;gap:4px">${posHtml}<span class="pname starter" style="color:#c8e6c9;flex:1">${name}${ageHtml}${trendHtml}${upsideHtml}</span><span class="pnfl">${nfl}</span>${fcHtml}</div>`;
+                }
+                return`<div class="player-item">${posHtml}<span class="pname">${name}${ageHtml}${trendHtml}${upsideHtml}</span><span class="pnfl">${nfl}</span></div>`;
               }).join('');
             })()}
           </div>
         </td>
       </tr>`;
 
-      // Detail row
+      // Detail row (unchanged)
       html+=`<tr class="detail-row" id="detail-${t.id}" style="display:${isExp?'table-row':'none'}">
         <td colspan="6">
           <div class="detail-inner">
@@ -1406,7 +1488,6 @@ function renderOverview(c){
                   ${deltaTag(t.overall.delta)} ${fragTag(t.overall.frag)}
                 </div>
                 ${(()=>{
-                  // Balance indicator — show pos floor spread
                   const posLabels=['QB','RB','WR','TE','Flex'];
                   const posFloors=t.overall.posFloors||[t.qb.floor,t.rb.floor,t.wr.floor,t.te.floor,t.flex.floor];
                   const bal=t.overall.balance||'—';
@@ -1446,10 +1527,13 @@ function renderOverview(c){
       </tr>`;
     });
 
-    html+=`</tbody></table></div>
-    <div style="font-size:11px;color:#333;margin-top:12px;padding:0 2px">
-      Legend: grade range = Floor→Ceil &nbsp;·&nbsp; Hi/Mid/Lo = ceiling probability &nbsp;·&nbsp; R = Robust &nbsp;·&nbsp; AF = Antifragile &nbsp;·&nbsp; F = Fragile
-    </div>`;
+    html+=`</tbody></table></div>`;
+    const legendParts=[];
+    if(overviewLenses.grades)legendParts.push('grade range = Floor→Ceil');
+    if(overviewLenses.fragility)legendParts.push('R = Robust &nbsp;·&nbsp; AF = Antifragile &nbsp;·&nbsp; F = Fragile');
+    if(overviewLenses.trends)legendParts.push('▲▼ = FC value trend vs 7-day snapshot (±150 threshold)');
+    if(overviewLenses.upside)legendParts.push('↑↑ = high upside &nbsp;·&nbsp; ↑ = medium upside');
+    if(legendParts.length>0)html+=`<div style="font-size:11px;color:#333;margin-top:12px;padding:0 2px">${legendParts.join(' &nbsp;·&nbsp; ')}</div>`;
 
   } else {
     // Assets view
