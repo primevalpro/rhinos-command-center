@@ -244,6 +244,21 @@ textarea:focus{outline:none;border-color:#1D9E75}
   .tab{padding:8px 10px;font-size:12px}
 }
 </style>
+<script type="module">
+import{initializeApp}from'https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js';
+import{getAuth,signInAnonymously,onAuthStateChanged}from'https://www.gstatic.com/firebasejs/12.14.0/firebase-auth.js';
+import{getFirestore,doc,setDoc,getDoc}from'https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js';
+const app=initializeApp({apiKey:"AIzaSyDleIAMKsq9mlZkJ_n7pPMI7-EdKc7uBM0",authDomain:"dynasty-command-center-8c1ab.firebaseapp.com",projectId:"dynasty-command-center-8c1ab",storageBucket:"dynasty-command-center-8c1ab.firebasestorage.app",messagingSenderId:"787376620536",appId:"1:787376620536:web:6b188978aea09f3acdcc0d"});
+const auth=getAuth(app);
+const db=getFirestore(app);
+const docRef=doc(db,'rhinos','commandCenter');
+const authReady=new Promise(resolve=>{onAuthStateChanged(auth,u=>{if(u)resolve();});});
+signInAnonymously(auth).catch(()=>{});
+window.rhFirebase={
+  save(key,value){authReady.then(()=>setDoc(docRef,{[key]:value},{merge:true})).catch(()=>{});},
+  async loadAll(){try{await authReady;const s=await getDoc(docRef);return s.exists()?s.data():null;}catch(e){return null;}}
+};
+</script>
 </head>
 <body>
 <div class="app-header">
@@ -2836,6 +2851,7 @@ function manageFCTrendsSnapshot(){
     const isStale=!ts||(Date.now()-parseInt(ts))>FC_TRENDS_MAX_AGE_MS;
     if(isStale){
       localStorage.setItem(FC_TRENDS_SNAPSHOT_KEY,JSON.stringify(fcValues));
+      window.rhFirebase?.save(FC_TRENDS_SNAPSHOT_KEY,JSON.stringify(fcValues));
       localStorage.setItem(FC_TRENDS_SNAPSHOT_TS_KEY,String(Date.now()));
     }
   }catch(e){}
@@ -4641,6 +4657,7 @@ function saveRosterData(){
       };
     });
     localStorage.setItem(ROSTER_STORAGE_KEY,JSON.stringify(data));
+    window.rhFirebase?.save(ROSTER_STORAGE_KEY,JSON.stringify(data));
   }catch(e){console.warn('Roster save failed:',e.message);}
 }
 
@@ -4664,6 +4681,7 @@ function saveAssessData(){
       };
     });
     localStorage.setItem(ASSESS_STORAGE_KEY,JSON.stringify(data));
+    window.rhFirebase?.save(ASSESS_STORAGE_KEY,JSON.stringify(data));
   }catch(e){console.warn('Assess save failed:',e.message);}
 }
 
@@ -5224,7 +5242,20 @@ function toggleClockRow(id){
   renderDynastyClock(g('mainContent'));
 }
 
-window.addEventListener('DOMContentLoaded',()=>{
+window.addEventListener('DOMContentLoaded',async()=>{
+  try{
+    const cloudData=await Promise.race([
+      window.rhFirebase?.loadAll()??Promise.resolve(null),
+      new Promise(r=>setTimeout(()=>r(null),3000))
+    ]);
+    if(cloudData){
+      ['rhinos_assess_data','rhinos_roster_data','rhinos_fc_trends_snapshot'].forEach(key=>{
+        if(cloudData[key]!=null&&cloudData[key]!==localStorage.getItem(key)){
+          localStorage.setItem(key,cloudData[key]);
+        }
+      });
+    }
+  }catch(e){}
   loadPersistedData();
   if(loadFCFromCache()&&!fcCacheIsStale()){
     computeFloorGrades();
