@@ -2793,6 +2793,13 @@ function renderOverview(c){
       const symFrag=`sym-${t.overall.frag==='antifragile'?'anti':t.overall.frag}`;
       const cap=pickCapScore(t.picks2027);
 
+      // Compute display-optimal positional lineup: sort each position's full roster by KTC
+      // so the best players always fill positional starter slots before overflow goes to flex
+      const ktcSort=arr=>[...arr].sort((a,b)=>(getKTCValue(b)||0)-(getKTCValue(a)||0));
+      const dRB=(()=>{const s=ktcSort([...t.rb.starters,...t.rb.depth]);return{starters:s.slice(0,2),depth:s.slice(2)};})();
+      const dWR=(()=>{const s=ktcSort([...t.wr.starters,...t.wr.depth]);return{starters:s.slice(0,3),depth:s.slice(3)};})();
+      const dTE=(()=>{const s=ktcSort([...t.te.starters,...t.te.depth]);return{starters:s.slice(0,1),depth:s.slice(1)};})();
+
       html+=`<tr class="team-row ${t.us?'us':''} ${isExp?'expanded':''}" id="teamrow-${t.id}" onclick="toggleTeamRow('${t.id}')">
         <td>
           <div style="display:flex;align-items:flex-start;gap:6px">
@@ -2819,22 +2826,22 @@ function renderOverview(c){
         <td>
           ${posIndicators(t.rb)}
           <div class="player-list">
-            ${t.rb.starters.map(p=>playerItem(p,true,showAges)).join('')}
-            ${t.rb.depth.map(p=>playerItem(p,false,showAges)).join('')}
+            ${dRB.starters.map(p=>playerItem(p,true,showAges)).join('')}
+            ${dRB.depth.map(p=>playerItem(p,false,showAges)).join('')}
           </div>
         </td>
         <td>
           ${posIndicators(t.wr)}
           <div class="player-list">
-            ${t.wr.starters.map(p=>playerItem(p,true,showAges)).join('')}
-            ${t.wr.depth.length>0?`<div class="player-item"><span class="pname">${t.wr.depth.map(p=>{const n=p.split(' (')[0];const age=showAges?getPlayerAge(p):null;return n+(age?` <span style="font-family:'DM Mono',monospace;font-size:9px;padding:1px 3px;border-radius:3px;background:#1e2a1e;color:#4a8c60">${age}</span>`:'')} ).join(' · ')}</span></div>`:''}
+            ${dWR.starters.map(p=>playerItem(p,true,showAges)).join('')}
+            ${dWR.depth.length>0?`<div class="player-item"><span class="pname">${dWR.depth.map(p=>{const n=p.split(' (')[0];const age=showAges?getPlayerAge(p):null;return n+(age?` <span style="font-family:'DM Mono',monospace;font-size:9px;padding:1px 3px;border-radius:3px;background:#1e2a1e;color:#4a8c60">${age}</span>`:'')} ).join(' · ')}</span></div>`:''}
           </div>
         </td>
         <td>
           ${posIndicators(t.te)}
           <div class="player-list">
-            ${t.te.starters.map(p=>playerItem(p,true,showAges)).join('')}
-            ${t.te.depth.map(p=>playerItem(p,false,showAges)).join('')}
+            ${dTE.starters.map(p=>playerItem(p,true,showAges)).join('')}
+            ${dTE.depth.map(p=>playerItem(p,false,showAges)).join('')}
           </div>
         </td>
         <td style="background:#0a1a0e;border-left:2px solid #1a3a22">
@@ -2843,11 +2850,11 @@ function renderOverview(c){
             ${(()=>{
               // Position grade as numeric fallback score
               const posGradeScore=(pos)=>({S:4,A:3,B:2,C:1}[t[pos.toLowerCase()]?.floor]||1);
-              // Collect all RB/WR/TE depth players with a sort score
+              // Collect overflow RB/WR/TE after positional slots are filled, sorted by KTC
               const flexPool=[
-                ...t.rb.depth.map(p=>({p,pos:'RB',baseScore:posGradeScore('rb')})),
-                ...t.wr.depth.map(p=>({p,pos:'WR',baseScore:posGradeScore('wr')})),
-                ...t.te.depth.map(p=>({p,pos:'TE',baseScore:posGradeScore('te')}))
+                ...dRB.depth.map(p=>({p,pos:'RB',baseScore:posGradeScore('rb')})),
+                ...dWR.depth.map(p=>({p,pos:'WR',baseScore:posGradeScore('wr')})),
+                ...dTE.depth.map(p=>({p,pos:'TE',baseScore:posGradeScore('te')}))
               ].map(item=>{
                 const ktcVal=getKTCValue(item.p);
                 // KTC value scaled to 0-4 range; fallback to position grade
@@ -4652,8 +4659,10 @@ function processCsvImport(){
     ['QB','RB','WR','TE'].forEach(pos => {
       const players = r[pos] || [];
       const n = starterCounts[pos];
-      team[pos.toLowerCase()].starters = players.slice(0, n);
-      team[pos.toLowerCase()].depth    = players.slice(n);
+      // Sort by KTC value descending so best players always fill positional starter slots
+      const sorted = [...players].sort((a,b) => (getKTCValue(b)||0) - (getKTCValue(a)||0));
+      team[pos.toLowerCase()].starters = sorted.slice(0, n);
+      team[pos.toLowerCase()].depth    = sorted.slice(n);
     });
     team.rostered = Object.values(r).flat().length;
     teamsUpdated++;
