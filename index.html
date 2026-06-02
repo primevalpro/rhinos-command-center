@@ -2997,7 +2997,7 @@ function copyTeamReassessPrompt(teamId){
     seasonContext=`This is the preseason for the ${nextSeason} NFL season. Assess based on projected depth charts, training camp reports, and current roster construction. Verify all player roles against current depth chart information — do not assume roles based on prior seasons.`;
   }
 
-  const playerStr=(players)=>players.map(p=>{
+  const playerStr=(players)=>players.filter(p=>getFCValue(p)>=500).map(p=>{
     const fc=getFCValue(p);
     const name=p.split(' (')[0];
     const nfl=p.match(/\(([^)]+)\)/)?.[1]||'?';
@@ -3025,9 +3025,8 @@ LEAGUE FORMAT: 1 QB · 1 Superflex (QB/RB/WR/TE) · 2 RB · 3 WR · 2 Flex (WR/R
 
 ${seasonContext}
 
-RESEARCH STEP — DO THIS FIRST before generating any grades:
-Search for current depth chart status, injury reports, training camp notes, and any recent news for each of these players: ${allPlayerNames}
-Verify each player's current NFL team and role. Pay particular attention to players who may have changed teams or situations recently. Do not rely on training data alone — search and confirm.
+RESEARCH STEP — DO THIS FIRST:
+Search for current depth chart status and recent news only for players with FC values under 2000 — these are the players whose situations are most likely to have changed recently. For players with FC values above 2000, rely on your existing knowledge unless something in the roster context suggests a recent change.
 
 GRADING FRAMEWORK:
 - Floor grades are auto-computed from FantasyCalc — DO NOT generate floor grades
@@ -3042,13 +3041,13 @@ UPSIDE RATINGS — assign every rostered player one of three tiers:
 - high: clearly ascending, age 22-25, significant growth ahead, entering prime with real opportunity
 - medium: still developing or in transition, moderate gains expected, recovering from injury or settling into role
 - low: fully realized talent, at or past prime, output is stable and predictable
-For every high or medium player, include a brief note (under 12 words) explaining the call. Low players get no note. Be specific — reference the player's actual situation, not generic phrases.
+For every high or medium player, include a brief note (under 8 words) explaining the call. Low players get no note. Be specific — reference the player's actual situation, not generic phrases.
 
 ROSTER:
 ${rosterText}
 
 Return ONLY a valid JSON array with exactly one object:
-[{"id":"${t.id}","qbCeil":"A","qbProb":"High","qbFrag":"robust","rbCeil":"C","rbProb":"High","rbFrag":"antifragile","wrCeil":"S","wrProb":"High","wrFrag":"antifragile","teCeil":"A","teProb":"High","teFrag":"robust","flexCeil":"A","flexProb":"High","flexFrag":"antifragile","flexNote":"brief note","flexDepthCeil":"B","flexDepthFrag":"antifragile","flexDepthNote":"brief note","overallCeil":"A","overallDelta":"moderate","overallFrag":"antifragile","window":"opening","windowNote":"Under 15 words","primeConcern":false,"philosophy":"3-4 sentences: construction strategy, strengths, vulnerabilities, fragility profile, and upside candidates identified in research","needs":["need 1"],"surplus":["surplus 1"],"playerUpside":{"Player Name (NFL)":{"tier":"high","note":"Specific reason under 12 words"},"Player Name2 (NFL)":{"tier":"low"}}}]
+[{"id":"${t.id}","qbCeil":"A","qbProb":"High","qbFrag":"robust","rbCeil":"C","rbProb":"High","rbFrag":"antifragile","wrCeil":"S","wrProb":"High","wrFrag":"antifragile","teCeil":"A","teProb":"High","teFrag":"robust","flexCeil":"A","flexProb":"High","flexFrag":"antifragile","flexNote":"brief note","flexDepthCeil":"B","flexDepthFrag":"antifragile","flexDepthNote":"brief note","overallCeil":"A","overallDelta":"moderate","overallFrag":"antifragile","window":"opening","windowNote":"Under 15 words","primeConcern":false,"philosophy":"2-3 sentences: construction strategy, strengths, vulnerabilities, fragility profile, and upside candidates identified in research","needs":["need 1"],"surplus":["surplus 1"],"playerUpside":{"Player Name (NFL)":{"tier":"high","note":"Specific reason under 8 words"},"Player Name2 (NFL)":{"tier":"low"}}}]
 
 Grade scale: S=Elite A=Strong B=Average C=Weak · Probability: High Medium Low · Fragility: fragile robust antifragile · Delta: minimal moderate high extreme · Window: winnow open opening retool rebuild
 
