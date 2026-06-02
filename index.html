@@ -264,7 +264,6 @@ textarea:focus{outline:none;border-color:#1D9E75}
     <button class="tab" onclick="showTab('trade',this)">Trade Targets</button>
     <button class="tab" onclick="showTab('power',this)">Power Rankings</button>
     <button class="tab" onclick="showTab('age',this)">Age &amp; Draft</button>
-    <button class="tab" onclick="showTab('production',this)">Team Production</button>
   </div>
 </div>
 
@@ -1337,7 +1336,6 @@ function renderOverview(c){
       ${['all','winnow','open','opening','retool','rebuild'].map(f=>`<button class="filter-btn ${overviewFilter===f?'active':''}" onclick="overviewFilter='${f}';renderOverview(g('mainContent'))">${f==='all'?'All Teams':f==='winnow'?'Win Now':f==='open'?'Contending':f==='opening'?'Rising':f==='retool'?'Retooling':f==='rebuild'?'Rebuilding':f}</button>`).join('')}
     </div>
     <div style="display:flex;gap:8px;align-items:center">
-      <button class="btn btn-sm ${showAges?'btn-primary':'btn-secondary'}" onclick="showAges=!showAges;overviewLenses.ages=showAges;try{localStorage.setItem(LENSES_STORAGE_KEY,JSON.stringify(overviewLenses));}catch(e){}renderOverview(g('mainContent'))" style="font-size:10px">Ages ${showAges?'ON':'OFF'}</button>
       <div class="toggle-group">
         <button class="toggle-btn ${overviewMode==='assessment'?'active':''}" onclick="overviewMode='assessment';renderOverview(g('mainContent'))">Assessment</button>
         <button class="toggle-btn ${overviewMode==='assets'?'active':''}" onclick="overviewMode='assets';renderOverview(g('mainContent'))">Assets</button>
