@@ -5172,8 +5172,6 @@ function renderWinTheFlex(c){
 function renderDynastyClock(c){
   const WCOLORS={winnow:'#ff6040',open:'#1D9E75',opening:'#4a9ede',retool:'#d4950a',rebuild:'#888'};
   const WLABELS={winnow:'Win Now',open:'Contending',opening:'Rising',retool:'Retooling',rebuild:'Rebuilding'};
-  const YEARS=[2026,2027,2028,2029,2030,2031];
-
   function uBadge2(playerStr,upside){
     if(!upside)return'';
     const info=upside[playerStr];
@@ -5194,12 +5192,17 @@ function renderDynastyClock(c){
     const primeEnd={QB:36,WR:30,TE:33,RB:27};
     const weights={QB:0.35,WR:0.25,TE:0.20,RB:0.20};
     const weighted=Object.keys(weights).reduce((s,p)=>s+weights[p]*Math.max(0,primeEnd[p]-(t.age[p]||0)),0);
-    const dur=Math.max(1,Math.min(5,Math.round(weighted*2)/2));
+    const dur=Math.max(1,Math.round(weighted*2)/2);
     const startMap={winnow:2026,open:2026,retool:2026,opening:2027,rebuild:2028};
     return{startYear:startMap[t.window]||2026,duration:dur};
   }
 
   const sortedTeams=[...TEAMS].sort((a,b)=>(a.powerRank||99)-(b.powerRank||99));
+
+  const spans=sortedTeams.map(t=>calcWindowSpan(t));
+  const gridEndYear=Math.max(2031,...spans.map((s,i)=>s.startYear+s.duration));
+  const totalYears=gridEndYear-2026;
+  const YEARS=Array.from({length:totalYears+1},(_,i)=>2026+i);
 
   const legendHtml=Object.entries(WCOLORS).map(([w,col])=>`<span style="display:flex;align-items:center;gap:4px;font-family:'DM Mono',monospace;font-size:9px;color:${col}"><span style="width:14px;height:3px;background:${col};border-radius:2px;display:inline-block"></span>${WLABELS[w]}</span>`).join('');
 
@@ -5221,9 +5224,9 @@ function renderDynastyClock(c){
   sortedTeams.forEach((t,i)=>{
     const barLabel=WLABELS[t.window]||t.window;
     const barColor=WCOLORS[t.window]||'#888';
-    const span=calcWindowSpan(t);
-    const barLeft=(span.startYear-2026)/5*100;
-    const barWidth=span.duration/5*100;
+    const span=spans[i];
+    const barLeft=(span.startYear-2026)/totalYears*100;
+    const barWidth=span.duration/totalYears*100;
     const isRebuild=t.window==='rebuild';
     const barStyle=`position:absolute;top:0;bottom:0;left:${barLeft}%;width:${barWidth}%;background:${barColor};border-radius:3px;opacity:${isRebuild?0.4:0.85};${isRebuild?`border:1px dashed ${barColor};box-sizing:border-box;`:''}`;
     const isExp=clockExpandedRows.has(t.id);
