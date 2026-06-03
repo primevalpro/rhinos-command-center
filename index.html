@@ -2445,7 +2445,7 @@ let overviewLenses=(()=>{try{const s=localStorage.getItem(LENSES_STORAGE_KEY);if
 // ── FC VALUE LOADER ──────────────────────────────────────────────────────────
 function stripNameSuffix(name){
   const bare=name.trim().replace(/\s*\([^)]*\)\s*$/,'').trim();
-  return bare.replace(/\s+(?:Jr\.|Sr\.|IV|III|II\b)\s*$/i,'').trim();
+  return bare.replace(/\s+(?:Jr\.?|Sr\.?|IV|III|II\b)\s*$/i,'').trim();
 }
 
 const FC_STORAGE_KEY='rhinos_fc_values';
@@ -2608,11 +2608,12 @@ function getFCValue(playerName){
   // stripNameSuffix strips both trailing "(TEAM)" and Jr./Sr./etc; lowercase matches cache keys
   const clean=stripNameSuffix(playerName.toLowerCase().trim());
   if(fcValues[clean])return fcValues[clean];
-  // retry with Jr. for caches built before suffix-stripping was applied to FC names
-  const withJr=clean+' jr.';
-  const result=fcValues[withJr]||0;
+  // retry with Jr. for caches where FC retained the suffix without stripping
+  const withJr=(clean+' jr.').trim();
+  const withJrNp=(clean+' jr').trim();
+  const result=fcValues[withJr]||fcValues[withJrNp]||0;
   if(!result){
-    console.log('[FC miss] lookup key:',JSON.stringify(clean),'| withJr:',JSON.stringify(withJr));
+    console.log('[FC miss] lookup key:',JSON.stringify(clean),'| withJr:',JSON.stringify(withJr),'| withJrNp:',JSON.stringify(withJrNp));
     console.log('[FC miss] first 20 FC keys:',Object.keys(fcValues).slice(0,20));
   }
   return result;
@@ -4979,13 +4980,15 @@ function handleCsvFileSelect(input){
 }
 
 function parsePlayerName(raw){
-  // Format: "Last First NFL " e.g. "Lamb CeeDee DAL "
+  // Format: "Last [Jr.|Sr.] First NFL" e.g. "Lamb CeeDee DAL", "St. Brown Amon-Ra DET", "Harrison Jr. Marvin ARI"
+  // The last token is always the NFL team; the second-to-last token is always the first name;
+  // everything before that is the last name (handles multi-word last names like "St. Brown").
   const trimmed = raw.trim();
   const parts = trimmed.split(/\s+/);
   if(parts.length < 3) return { displayName: trimmed, nfl: '' };
   const nfl = parts[parts.length - 1];
-  const last = parts[0];
-  const first = parts.slice(1, parts.length - 1).join(' ');
+  const first = parts[parts.length - 2];
+  const last = parts.slice(0, parts.length - 2).join(' ');
   return { displayName: `${first} ${last}`, nfl };
 }
 
@@ -5082,6 +5085,13 @@ function processCsvImport(){
 
   // Merge player stats into global map
   Object.assign(playerStatsMap, playerStatsMap_local);
+  if(mode === 'full'){
+    try{
+      const serialized=JSON.stringify(playerStatsMap);
+      localStorage.setItem(STATS_STORAGE_KEY,serialized);
+      window.rhFirebase?.save(STATS_STORAGE_KEY,serialized);
+    }catch(e){console.warn('Stats save failed:',e.message);}
+  }
 
   // Apply rosters to TEAMS data
   // Strategy: replace starters (first N by position) and depth (remainder)
@@ -5113,11 +5123,6 @@ function processCsvImport(){
       const s = statsMap[t.id] || {};
       return { name: t.name, totalPts: s.fp||0, recent: s.fp||0, score: s.fp||0, wins:0, losses:0 };
     }).filter(s => s.totalPts > 0);
-    try{
-      const serialized=JSON.stringify(playerStatsMap);
-      localStorage.setItem(STATS_STORAGE_KEY,serialized);
-      window.rhFirebase?.save(STATS_STORAGE_KEY,serialized);
-    }catch(e){console.warn('Stats save failed:',e.message);}
   }
 
   const modeLabel = mode === 'full' ? 'rosters + stats' : 'rosters';
