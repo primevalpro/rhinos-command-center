@@ -2600,7 +2600,9 @@ function processFCManualImport(){
 function getFCValue(playerName){
   if(!playerName)return 0;
   const clean=playerName.split(' (')[0].toLowerCase().trim();
-  return fcValues[clean]||0;
+  if(fcValues[clean])return fcValues[clean];
+  const stripped=clean.replace(/\s+(jr\.|sr\.|ii|iii|iv)$/i,'').trim();
+  return (stripped!==clean&&fcValues[stripped])||0;
 }
 
 // Returns FC live pick value for a round, falls back to hardcoded approximates
