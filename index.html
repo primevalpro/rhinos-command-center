@@ -2605,8 +2605,12 @@ function processFCManualImport(){
 
 function getFCValue(playerName){
   if(!playerName)return 0;
-  const clean=stripNameSuffix(playerName.split(' (')[0].toLowerCase().trim());
-  return fcValues[clean]||0;
+  const namePart=playerName.split(' (')[0];
+  const clean=stripNameSuffix(namePart.toLowerCase().trim());
+  if(fcValues[clean])return fcValues[clean];
+  // FFPC strips suffixes (Jr./Sr.) from CSV names while FC retains them — retry with Jr. appended
+  const withJr=(namePart.trim()+' Jr.').toLowerCase();
+  return fcValues[withJr]||0;
 }
 
 // Returns FC live pick value for a round, falls back to hardcoded approximates
