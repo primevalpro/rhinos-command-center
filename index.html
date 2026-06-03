@@ -2438,6 +2438,7 @@ let fcPickValues={}; // {1:3500, 2:1800, ...}
 // ── OVERVIEW LENS TOGGLES ────────────────────────────────────────────────────
 const LENSES_STORAGE_KEY='rhinos_overview_lenses';
 let fcHistory={};
+let ageLens='starters';
 let overviewLenses=(()=>{try{const s=localStorage.getItem(LENSES_STORAGE_KEY);if(s){const p=JSON.parse(s);const l={grades:!!p.grades,fragility:!!p.fragility,ages:!!p.ages,trends:!!p.trends,upside:!!p.upside,values:!!p.values};showAges=l.ages;return l;}}catch(e){}return{grades:false,fragility:false,ages:false,trends:false,upside:false,values:false};})();
 
 // ── FC VALUE LOADER ──────────────────────────────────────────────────────────
@@ -2748,6 +2749,14 @@ const AGE_FALLBACK={
   'devonta smith':27,'ladd mcconkey':24,'isaiah likely':25,
   'braelon allen':21,'jordan james':22,'emmett johnson':23,
   'patrick mahomes':30,'lamar jackson':28,'josh allen':29,'jalen hurts':27,
+  'baker mayfield':31,'matthew stafford':38,'daniel jones':29,
+  'dak prescott':32,'tua tagovailoa':28,'jordan love':27,'c.j. stroud':24,
+  'jared goff':31,'kyler murray':28,'sam darnold':28,'jayden daniels':25,
+  'deshaun watson':30,'jaxson dart':23,'brock purdy':25,'cam ward':24,
+  'caleb williams':24,'ty simpson':23,'aaron rodgers':42,'bryce young':24,
+  'carson beck':23,'jacoby brissett':33,'justin herbert':27,'bo nix':26,
+  'geno smith':35,'joe burrow':29,'trevor lawrence':26,'tyler shough':27,
+  'malik willis':26,'michael penix':24,'fernando mendoza':23,
   'brock bowers':22,"ja'marr chase":26,'justin jefferson':26,
   'james cook':25,"de'von achane":23,'saquon barkley':28,
   'jahmyr gibbs':23,'christian mccaffrey':29,'ashton jeanty':21,
@@ -2790,7 +2799,7 @@ function probTag(p){return`<span class="tag tag-${p.toLowerCase()}">${p}</span>`
 function deltaTag(d){const cls=d==='high'?'tag-high-delta':`tag-${d}`;return`<span class="tag ${cls}">${d}</span>`}
 function windowTag(w){const map={winnow:'Win Now',open:'Contending',opening:'Rising',retool:'Retooling',rebuild:'Rebuilding'};return`<span class="tag tag-${w}">${map[w]||w}</span>`}
 function ageTag(pos,age){
-  const t={QB:{y:25,p:36,a:38},RB:{y:23,p:27,a:29},WR:{y:24,p:30,a:33},TE:{y:24,p:33,a:36}}[pos];
+  const t={QB:{y:25,p:33,a:36},RB:{y:23,p:27,a:29},WR:{y:24,p:29,a:32},TE:{y:24,p:31,a:34}}[pos];
   if(!t)return'';
   if(age<=t.y)return'<span class="tag" style="background:#0a3d28;color:#1D9E75">young</span>';
   if(age<=t.p)return'<span class="tag" style="background:#0a1e3a;color:#4a9ede">prime</span>';
@@ -4337,42 +4346,58 @@ function initDrag(){}
 
 // ── AGE & DRAFT ───────────────────────────────────────────────────────────────
 function renderAge(c){
-  // Dynamically compute average starter age per position using Sleeper birth dates
   function avgStarterAge(players){
-    const ages=players.map(p=>getPlayerAge(p)).filter(a=>a!==null&&a>0);
+    const ages=(players||[]).map(p=>getPlayerAge(p)).filter(a=>a!==null&&a>0);
     if(!ages.length)return null;
     return Math.round(ages.reduce((s,a)=>s+a,0)/ages.length);
   }
 
+  const isStarters=ageLens==='starters';
   const ageRows=TEAMS.map(t=>{
-    const qbAge = avgStarterAge(t.qb.starters) || t.age.QB;
-    const rbAge = avgStarterAge(t.rb.starters) || t.age.RB;
-    const wrAge = avgStarterAge(t.wr.starters) || t.age.WR;
-    const teAge = avgStarterAge(t.te.starters) || t.age.TE;
-    const avg = Math.round((qbAge+rbAge+wrAge+teAge)/4);
+    const qbAge = isStarters
+      ? (avgStarterAge(t.qb.starters) || t.age.QB)
+      : avgStarterAge(t.qb.depth);
+    const rbAge = isStarters
+      ? (avgStarterAge(t.rb.starters) || t.age.RB)
+      : avgStarterAge(t.rb.depth);
+    const wrAge = isStarters
+      ? (avgStarterAge(t.wr.starters) || t.age.WR)
+      : avgStarterAge(t.wr.depth);
+    const teAge = isStarters
+      ? (avgStarterAge(t.te.starters) || t.age.TE)
+      : avgStarterAge(t.te.depth);
+    const ageVals=[qbAge,rbAge,wrAge,teAge].filter(a=>a!==null);
+    const avg=ageVals.length?Math.round(ageVals.reduce((s,a)=>s+a,0)/ageVals.length):null;
     return{...t, dynQB:qbAge, dynRB:rbAge, dynWR:wrAge, dynTE:teAge, avg};
-  }).sort((a,b)=>a.avg-b.avg);
+  }).sort((a,b)=>(a.avg||99)-(b.avg||99));
 
   const sleeperNote = sleeperLoaded
     ? `<span style="font-family:'DM Mono',monospace;font-size:9px;color:#1D9E75">● Live from Sleeper</span>`
     : `<span style="font-family:'DM Mono',monospace;font-size:9px;color:#555">Sleeper loading…</span>`;
 
-  let html=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+  let html=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:8px">
     <div class="sub-header" style="margin-bottom:0">Championship Windows & Age Profile</div>
     ${sleeperNote}
+  </div>
+  <div style="margin-bottom:10px">
+    <div class="toggle-group">
+      <button class="toggle-btn ${isStarters?'active':''}" onclick="ageLens='starters';renderAge(g('mainContent'))">Starters</button>
+      <button class="toggle-btn ${isStarters?'':'active'}" onclick="ageLens='depth';renderAge(g('mainContent'))">Depth</button>
+    </div>
   </div>
   <div style="overflow-x:auto;margin-bottom:16px">
   <table class="overview-table"><thead><tr><th>Team</th><th>QB Age</th><th>RB Age</th><th>WR Age</th><th>TE Age</th><th>Avg</th><th>Window</th><th>Prime Concern</th></tr></thead><tbody>`;
 
+  const ageCell=(pos,val)=>val!==null?`${val} ${ageTag(pos,val)}`:'<span style="color:#333">—</span>';
   ageRows.forEach(t=>{
-    const avgColor=t.avg<=25?'#1D9E75':t.avg<=28?'#4a9ede':t.avg<=30?'#d4950a':'#d06040';
+    const avgColor=t.avg===null?'#444':t.avg<=25?'#1D9E75':t.avg<=28?'#4a9ede':t.avg<=30?'#d4950a':'#d06040';
     html+=`<tr class="team-row ${t.us?'us':''}" style="cursor:default">
       <td style="font-family:'Barlow Condensed',sans-serif;font-weight:600;font-size:14px">${t.us?'★ ':''}${t.name}</td>
-      <td>${t.dynQB} ${ageTag('QB',t.dynQB)}</td>
-      <td>${t.dynRB} ${ageTag('RB',t.dynRB)}</td>
-      <td>${t.dynWR} ${ageTag('WR',t.dynWR)}</td>
-      <td>${t.dynTE} ${ageTag('TE',t.dynTE)}</td>
-      <td><span style="font-family:'Barlow Condensed',sans-serif;font-size:17px;font-weight:700;color:${avgColor}">${t.avg}</span></td>
+      <td>${ageCell('QB',t.dynQB)}</td>
+      <td>${ageCell('RB',t.dynRB)}</td>
+      <td>${ageCell('WR',t.dynWR)}</td>
+      <td>${ageCell('TE',t.dynTE)}</td>
+      <td><span style="font-family:'Barlow Condensed',sans-serif;font-size:17px;font-weight:700;color:${avgColor}">${t.avg!==null?t.avg:'—'}</span></td>
       <td>${windowTag(t.window)}<div style="font-size:10px;color:#555;margin-top:4px;line-height:1.4;max-width:160px">${t.windowNote}</div></td>
       <td>${t.primeConcern?'<span class="tag tag-warning">⚠ aging core</span>':'<span style="color:#333;font-size:12px">—</span>'}</td>
     </tr>`;
@@ -5276,7 +5301,7 @@ function renderDynastyClock(c){
   }
 
   function calcWindowSpan(t){
-    const primeEnd={QB:36,WR:30,TE:33,RB:27};
+    const primeEnd={QB:33,WR:29,TE:31,RB:27};
     const weights={QB:0.35,WR:0.25,TE:0.20,RB:0.20};
     const weighted=Object.keys(weights).reduce((s,p)=>s+weights[p]*Math.max(0,primeEnd[p]-(t.age[p]||0)),0);
     const dur=Math.max(1,Math.round(weighted*2)/2);
