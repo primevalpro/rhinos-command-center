@@ -2429,6 +2429,7 @@ const SLEEPER_MAX_AGE_MS=30*24*60*60*1000; // 30 days — birth dates don't chan
 // localStorage persistence keys
 const ROSTER_STORAGE_KEY='rhinos_roster_data';
 const ASSESS_STORAGE_KEY='rhinos_assess_data';
+const STATS_STORAGE_KEY='rhinos_stats_data';
 
 // Power rankings accordion state
 let powerExpandedRows=new Set();
@@ -4870,6 +4871,15 @@ function loadPersistedData(){
       if(ranked.length===TEAMS.length)powerRankings=ranked.map(t=>t.id);
     }
   }catch(e){console.warn('Assess load failed:',e.message);}
+
+  // Load player stats data
+  try{
+    const raw=localStorage.getItem(STATS_STORAGE_KEY);
+    if(raw){
+      const data=JSON.parse(raw);
+      Object.assign(playerStatsMap,data);
+    }
+  }catch(e){console.warn('Stats load failed:',e.message);}
 }
 
 // ── IMPORT RESULTS ────────────────────────────────────────────────────────────
@@ -5092,6 +5102,11 @@ function processCsvImport(){
       const s = statsMap[t.id] || {};
       return { name: t.name, totalPts: s.fp||0, recent: s.fp||0, score: s.fp||0, wins:0, losses:0 };
     }).filter(s => s.totalPts > 0);
+    try{
+      const serialized=JSON.stringify(playerStatsMap);
+      localStorage.setItem(STATS_STORAGE_KEY,serialized);
+      window.rhFirebase?.save(STATS_STORAGE_KEY,serialized);
+    }catch(e){console.warn('Stats save failed:',e.message);}
   }
 
   const modeLabel = mode === 'full' ? 'rosters + stats' : 'rosters';
@@ -5376,7 +5391,7 @@ window.addEventListener('DOMContentLoaded',async()=>{
       new Promise(r=>setTimeout(()=>r(null),3000))
     ]);
     if(cloudData){
-      ['rhinos_assess_data','rhinos_roster_data'].forEach(key=>{
+      ['rhinos_assess_data','rhinos_roster_data','rhinos_stats_data'].forEach(key=>{
         if(cloudData[key]!=null&&cloudData[key]!==localStorage.getItem(key)){
           localStorage.setItem(key,cloudData[key]);
         }
