@@ -2605,11 +2605,11 @@ function processFCManualImport(){
 
 function getFCValue(playerName){
   if(!playerName)return 0;
-  const namePart=playerName.split(' (')[0];
-  const clean=stripNameSuffix(namePart.toLowerCase().trim());
+  // stripNameSuffix strips both trailing "(TEAM)" and Jr./Sr./etc; lowercase matches cache keys
+  const clean=stripNameSuffix(playerName.toLowerCase().trim());
   if(fcValues[clean])return fcValues[clean];
-  // FFPC strips suffixes (Jr./Sr.) from CSV names while FC retains them — retry with Jr. appended
-  const withJr=(namePart.trim()+' Jr.').toLowerCase();
+  // retry with Jr. for caches built before suffix-stripping was applied to FC names
+  const withJr=clean+' jr.';
   const result=fcValues[withJr]||0;
   if(!result){
     console.log('[FC miss] lookup key:',JSON.stringify(clean),'| withJr:',JSON.stringify(withJr));
