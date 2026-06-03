@@ -2790,7 +2790,7 @@ function probTag(p){return`<span class="tag tag-${p.toLowerCase()}">${p}</span>`
 function deltaTag(d){const cls=d==='high'?'tag-high-delta':`tag-${d}`;return`<span class="tag ${cls}">${d}</span>`}
 function windowTag(w){const map={winnow:'Win Now',open:'Contending',opening:'Rising',retool:'Retooling',rebuild:'Rebuilding'};return`<span class="tag tag-${w}">${map[w]||w}</span>`}
 function ageTag(pos,age){
-  const t={QB:{y:25,p:30,a:34},RB:{y:23,p:27,a:29},WR:{y:24,p:28,a:31},TE:{y:24,p:28,a:31}}[pos];
+  const t={QB:{y:25,p:36,a:38},RB:{y:23,p:27,a:29},WR:{y:24,p:30,a:33},TE:{y:24,p:33,a:36}}[pos];
   if(!t)return'';
   if(age<=t.y)return'<span class="tag" style="background:#0a3d28;color:#1D9E75">young</span>';
   if(age<=t.p)return'<span class="tag" style="background:#0a1e3a;color:#4a9ede">prime</span>';
@@ -5302,7 +5302,7 @@ function renderDynastyClock(c){
   // Year axis
   html+=`<div style="display:grid;grid-template-columns:190px 1fr 190px;gap:0;margin-bottom:4px;padding:0 10px">
     <div></div>
-    <div style="display:flex;justify-content:space-between;padding:0 2px">${YEARS.map(y=>`<span style="font-family:'DM Mono',monospace;font-size:9px;color:#2a2a2a">${y}</span>`).join('')}</div>
+    <div style="display:flex;justify-content:space-between;padding:0 2px">${YEARS.map(y=>`<span style="font-family:'DM Mono',monospace;font-size:9px;color:#ffffff">${y}</span>`).join('')}</div>
     <div></div>
   </div>`;
 
