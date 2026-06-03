@@ -2444,6 +2444,7 @@ const SLEEPER_MAX_AGE_MS=30*24*60*60*1000; // 30 days — birth dates don't chan
 const ROSTER_STORAGE_KEY='rhinos_roster_data';
 const ASSESS_STORAGE_KEY='rhinos_assess_data';
 const STATS_STORAGE_KEY='rhinos_stats_data';
+const FA_STORAGE_KEY='rhinos_fa_data';
 
 // Power rankings accordion state
 let powerExpandedRows=new Set();
@@ -2453,6 +2454,10 @@ let fcPickValues={}; // {1:3500, 2:1800, ...}
 // ── OVERVIEW LENS TOGGLES ────────────────────────────────────────────────────
 const LENSES_STORAGE_KEY='rhinos_overview_lenses';
 let fcHistory={};
+let freeAgents=[];
+let tradeTargetsExpandedRows=new Set();
+let waiverPosFilter='all';
+let waiverSort='value';
 let ageLens='starters';
 let overviewLenses=(()=>{try{const s=localStorage.getItem(LENSES_STORAGE_KEY);if(s){const p=JSON.parse(s);const l={grades:!!p.grades,fragility:!!p.fragility,ages:!!p.ages,trends:!!p.trends,upside:!!p.upside,values:!!p.values};showAges=l.ages;return l;}}catch(e){}return{grades:false,fragility:false,ages:false,trends:false,upside:false,values:false};})();
 
@@ -2867,7 +2872,7 @@ function showTab(tab,el){
   else if(tab==='production')renderTeamProduction(c);
   else if(tab==='flex')renderWinTheFlex(c);
   else if(tab==='clock')renderDynastyClock(c);
-  else if(tab==='waiver')renderComingSoon(c,'Waiver Wire');
+  else if(tab==='waiver')renderWaiverWire(c);
 }
 
 function showParentTab(group,el){
@@ -2894,11 +2899,78 @@ function showSubTab(tab,el,group){
   if(tab==='age')renderAge(c);
   else if(tab==='clock')renderDynastyClock(c);
   else if(tab==='trade')renderTrade(c);
-  else if(tab==='trade-targets')renderComingSoon(c,'Trade Targets');
+  else if(tab==='trade-targets')renderTradeTargets(c);
 }
 
 function renderComingSoon(c,name){
   c.innerHTML=`<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:320px;gap:10px"><div style="font-family:'Barlow Condensed',sans-serif;font-size:30px;font-weight:700;color:#2a2a2a;letter-spacing:.06em;text-transform:uppercase">${name}</div><div style="font-family:'DM Mono',monospace;font-size:11px;color:#333;letter-spacing:.08em">Coming soon</div></div>`;
+}
+
+// ── TRADE TARGETS ─────────────────────────────────────────────────────────────
+function renderTradeTargets(c){
+  const teams=TEAMS.filter(t=>!t.us);
+  function posGradeChip(pos,label){
+    const fl=gradeTag(pos.floor);
+    const grades=pos.ceil?`${fl}<span style="color:#333;font-size:10px;margin:0 1px">→</span>${gradeTag(pos.ceil)}`:fl;
+    return`<div style="display:flex;flex-direction:column;align-items:center;gap:2px"><span style="font-family:'DM Mono',monospace;font-size:8px;color:#444;letter-spacing:.06em;text-transform:uppercase">${label}</span><div style="display:flex;align-items:center;gap:1px">${grades}</div></div>`;
+  }
+  function trendBadge30(playerStr){
+    const d=getFCDelta(playerStr,30);
+    if(!d)return'';
+    return d.delta>0?`<span style="font-family:'DM Mono',monospace;font-size:9px;padding:1px 3px;border-radius:3px;background:#0a3d28;color:#1D9E75;white-space:nowrap;flex-shrink:0">▲ +${d.pct}%</span>`:`<span style="font-family:'DM Mono',monospace;font-size:9px;padding:1px 3px;border-radius:3px;background:#3a1510;color:#d06040;white-space:nowrap;flex-shrink:0">▼ ${d.pct}%</span>`;
+  }
+  function playerRow(playerStr,pos,isStarter){
+    const name=playerStr.split(' (')[0];
+    const fc=getFCValue(playerStr);
+    const fcHtml=fc?`<span style="font-family:'DM Mono',monospace;font-size:10px;color:#4a9ede;flex-shrink:0">${fc}</span>`:'';
+    return`<div style="display:flex;align-items:center;gap:5px;padding:3px 6px;border-radius:3px;margin-bottom:1px${isStarter?';background:#0d1810':''}"><span class="pos-badge pos-${pos}" style="font-size:9px;padding:1px 4px;flex-shrink:0">${pos}</span><span style="font-size:11px;color:${isStarter?'#ccc':'#555'};flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${name}</span>${fcHtml}${trendBadge30(playerStr)}</div>`;
+  }
+  let html='<div>';
+  teams.forEach(t=>{
+    const isExp=tradeTargetsExpandedRows.has(t.id);
+    const expandedHtml=isExp?`<div style="padding:10px 14px 12px;border-top:1px solid #1e1e1e">${['QB','RB','WR','TE'].map(pos=>{const pk=pos.toLowerCase();const st=t[pk].starters;const dp=t[pk].depth;return st.map(p=>playerRow(p,pos,true)).join('')+dp.map(p=>playerRow(p,pos,false)).join('');}).join('')}</div>`:'';
+    html+=`<div style="background:#161616;border:1px solid #222;border-radius:6px;overflow:hidden;margin-bottom:6px;cursor:pointer" onclick="toggleTradeTargetRow('${t.id}')"><div style="display:flex;align-items:center;gap:10px;padding:10px 14px;flex-wrap:wrap"><div style="min-width:150px;display:flex;align-items:center;gap:6px"><span style="font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;color:#ccc">${t.name}</span>${windowTag(t.window)}</div><div style="display:flex;gap:12px;flex-wrap:wrap">${posGradeChip(t.qb,'QB')}${posGradeChip(t.rb,'RB')}${posGradeChip(t.wr,'WR')}${posGradeChip(t.te,'TE')}${posGradeChip(t.flex,'Flex')}</div><span style="margin-left:auto;font-family:'DM Mono',monospace;font-size:10px;color:#444;flex-shrink:0">${isExp?'▲':'▼'}</span></div>${expandedHtml}</div>`;
+  });
+  html+='</div>';
+  c.innerHTML=html;
+}
+function toggleTradeTargetRow(id){
+  if(tradeTargetsExpandedRows.has(id))tradeTargetsExpandedRows.delete(id);
+  else tradeTargetsExpandedRows.add(id);
+  renderTradeTargets(g('mainContent'));
+}
+
+// ── WAIVER WIRE ───────────────────────────────────────────────────────────────
+function renderWaiverWire(c){
+  function trendBadge30(playerStr){
+    const d=getFCDelta(playerStr,30);
+    if(!d)return'';
+    return d.delta>0?`<span style="font-family:'DM Mono',monospace;font-size:9px;padding:1px 3px;border-radius:3px;background:#0a3d28;color:#1D9E75;white-space:nowrap;flex-shrink:0">▲ +${d.pct}%</span>`:`<span style="font-family:'DM Mono',monospace;font-size:9px;padding:1px 3px;border-radius:3px;background:#3a1510;color:#d06040;white-space:nowrap;flex-shrink:0">▼ ${d.pct}%</span>`;
+  }
+  const posFilters=['all','QB','RB','WR','TE'];
+  const filterHtml=posFilters.map(f=>`<button class="filter-btn ${waiverPosFilter===f?'active':''}" onclick="waiverPosFilter='${f}';renderWaiverWire(g('mainContent'))">${f==='all'?'All':f}</button>`).join('');
+  let html=`<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:14px"><div class="filter-row" style="margin:0;gap:6px">${filterHtml}</div><div class="toggle-group"><button class="toggle-btn ${waiverSort==='value'?'active':''}" onclick="waiverSort='value';renderWaiverWire(g('mainContent'))">By Value</button><button class="toggle-btn ${waiverSort==='rising'?'active':''}" onclick="waiverSort='rising';renderWaiverWire(g('mainContent'))">By Rising</button></div></div>`;
+  if(!freeAgents.length){
+    html+=`<div style="display:flex;align-items:center;justify-content:center;height:200px"><span style="font-family:'DM Mono',monospace;font-size:11px;color:#333;letter-spacing:.06em">Import a CSV to populate the waiver wire</span></div>`;
+    c.innerHTML=html;return;
+  }
+  let players=waiverPosFilter==='all'?[...freeAgents]:freeAgents.filter(fa=>fa.pos===waiverPosFilter);
+  if(waiverSort==='value'){
+    players.sort((a,b)=>(getFCValue(b.name)||0)-(getFCValue(a.name)||0));
+  } else {
+    players.sort((a,b)=>{const da=getFCDelta(a.name,30);const db=getFCDelta(b.name,30);const va=da&&da.delta>0?da.delta:0;const vb=db&&db.delta>0?db.delta:0;if(vb!==va)return vb-va;return(getFCValue(b.name)||0)-(getFCValue(a.name)||0);});
+  }
+  if(!players.length){
+    html+=`<div style="font-family:'DM Mono',monospace;font-size:11px;color:#333;padding:20px 0">No ${waiverPosFilter} free agents in the waiver wire.</div>`;
+  } else {
+    html+=players.map(fa=>{
+      const name=fa.name.split(' (')[0];
+      const fc=getFCValue(fa.name)||fa.fcValue;
+      const fcHtml=fc?`<span style="font-family:'DM Mono',monospace;font-size:11px;color:#4a9ede;flex-shrink:0">${fc}</span>`:'';
+      return`<div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:#161616;border:1px solid #222;border-radius:6px;margin-bottom:4px"><span class="pos-badge pos-${fa.pos}">${fa.pos}</span><span style="font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:600;color:#ccc;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${name}</span>${fcHtml}${trendBadge30(fa.name)}</div>`;
+    }).join('');
+  }
+  c.innerHTML=html;
 }
 
 function openModal(id){g(id).classList.add('open')}
@@ -2965,6 +3037,27 @@ function getHistoricalValues(){
   const inWindow=dates.filter(d=>d>=targetStr&&d<=windowEndStr);
   if(inWindow.length===0)return null;
   return fcHistory[inWindow[0]]||null;
+}
+function getFCDelta(playerName,days){
+  const dates=Object.keys(fcHistory).sort();
+  if(dates.length<5)return null;
+  const cur=getFCValue(playerName);
+  if(!cur)return null;
+  const target=new Date();target.setDate(target.getDate()-days);
+  const targetStr=target.toISOString().slice(0,10);
+  const available=dates.filter(d=>d>=targetStr);
+  const snapDate=available.length?available[0]:dates[0];
+  const snap=fcHistory[snapDate];
+  if(!snap)return null;
+  const clean=playerName.toLowerCase().trim().replace(/\s*\([^)]*\)\s*$/,'').trim();
+  const cleanBare=clean.replace(/\s+(?:jr\.?|sr\.?|iv|iii|ii\b)\s*$/i,'').trim();
+  const prev=snap[clean]||snap[cleanBare]||0;
+  if(!prev)return null;
+  const delta=cur-prev;
+  const threshold=cur>=2000?cur*0.05:cur>=500?cur*0.1:cur*0.2;
+  if(Math.abs(delta)<threshold)return null;
+  const pct=Math.round(delta/prev*100);
+  return{current:cur,previous:prev,delta:Math.round(delta),pct};
 }
 
 // ── OVERVIEW ──────────────────────────────────────────────────────────────────
@@ -4940,6 +5033,12 @@ function loadPersistedData(){
       Object.assign(playerStatsMap,data);
     }
   }catch(e){console.warn('Stats load failed:',e.message);}
+
+  // Load free agent data
+  try{
+    const raw=localStorage.getItem(FA_STORAGE_KEY);
+    if(raw){freeAgents=JSON.parse(raw)||[];}
+  }catch(e){console.warn('FA load failed:',e.message);}
 }
 
 // ── IMPORT RESULTS ────────────────────────────────────────────────────────────
@@ -5083,10 +5182,11 @@ function processCsvImport(){
     return;
   }
 
-  // Build per-team roster from CSV — skip free agents (blank OWNED BY)
+  // Build per-team roster from CSV
   const rosterMap = {}; // teamId -> { QB:[], RB:[], WR:[], TE:[] }
   const statsMap  = {}; // teamId -> { fp, ppg, proj, own }
   const playerStatsMap_local = {}; // playerStr -> {ppg, fp, proj}
+  const localFAs = []; // free agent rows (blank OWNED BY)
   let rowCount = 0;
 
   for(let i = 1; i < lines.length; i++){
@@ -5104,14 +5204,17 @@ function processCsvImport(){
     cols.push(cur);
 
     const ownedBy = (cols[iOwned]||'').trim();
-    if(!ownedBy) continue; // skip free agents
-
-    const teamId = FFPC_TEAM_MAP[ownedBy];
-    if(!teamId) continue; // unknown team name
-
     const { displayName, nfl } = parsePlayerName(cols[iPlayer]||'');
     const pos = (cols[iPos]||'').trim();
     const playerStr = `${displayName} (${nfl})`;
+
+    if(!ownedBy){
+      if(['QB','RB','WR','TE'].includes(pos))localFAs.push({name:playerStr,pos,fcValue:getFCValue(playerStr)});
+      continue;
+    }
+
+    const teamId = FFPC_TEAM_MAP[ownedBy];
+    if(!teamId) continue; // unknown team name
 
     if(!rosterMap[teamId]) rosterMap[teamId] = { QB:[], RB:[], WR:[], TE:[], OTHER:[] };
     const posGroup = ['QB','RB','WR','TE'].includes(pos) ? pos : 'OTHER';
@@ -5133,6 +5236,11 @@ function processCsvImport(){
   }
 
   if(!rowCount){ statusEl.innerHTML='<span style="color:#d06040">No owned players found. Check the CSV and try again.</span>'; setTimeout(()=>{statusEl.innerHTML='';},3000); return; }
+
+  // Save free agents
+  freeAgents=localFAs;
+  try{localStorage.setItem(FA_STORAGE_KEY,JSON.stringify(localFAs));}catch(e){}
+  window.rhFirebase?.save(FA_STORAGE_KEY,JSON.stringify(localFAs));
 
   // Merge player stats into global map
   Object.assign(playerStatsMap, playerStatsMap_local);
@@ -5175,7 +5283,7 @@ function processCsvImport(){
   }
 
   const modeLabel = mode === 'full' ? 'rosters + stats' : 'rosters';
-  statusEl.innerHTML=`<span style="color:#1D9E75">Updated ${modeLabel} for ${teamsUpdated} teams (${rowCount} players). Use Copy Re-Assess Prompt to refresh grades.</span>`;
+  statusEl.innerHTML=`<span style="color:#1D9E75">Updated ${modeLabel} for ${teamsUpdated} teams (${rowCount} players, ${localFAs.length} FA). Use Copy Re-Assess Prompt to refresh grades.</span>`;
   setTimeout(()=>{statusEl.innerHTML='';},3000);
   computeFloorGrades();
   saveRosterData();
@@ -5407,7 +5515,7 @@ window.addEventListener('DOMContentLoaded',async()=>{
       new Promise(r=>setTimeout(()=>r(null),3000))
     ]);
     if(cloudData){
-      ['rhinos_assess_data','rhinos_roster_data','rhinos_stats_data'].forEach(key=>{
+      ['rhinos_assess_data','rhinos_roster_data','rhinos_stats_data','rhinos_fa_data'].forEach(key=>{
         const cloudVal=cloudData[key];
         if(cloudVal!=null&&cloudVal!==''&&cloudVal!==localStorage.getItem(key)){
           localStorage.setItem(key,cloudVal);
