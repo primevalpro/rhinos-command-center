@@ -2610,7 +2610,12 @@ function getFCValue(playerName){
   if(fcValues[clean])return fcValues[clean];
   // FFPC strips suffixes (Jr./Sr.) from CSV names while FC retains them — retry with Jr. appended
   const withJr=(namePart.trim()+' Jr.').toLowerCase();
-  return fcValues[withJr]||0;
+  const result=fcValues[withJr]||0;
+  if(!result){
+    console.log('[FC miss] lookup key:',JSON.stringify(clean),'| withJr:',JSON.stringify(withJr));
+    console.log('[FC miss] first 20 FC keys:',Object.keys(fcValues).slice(0,20));
+  }
+  return result;
 }
 
 // Returns FC live pick value for a round, falls back to hardcoded approximates
@@ -4880,6 +4885,7 @@ function loadPersistedData(){
   // Load player stats data
   try{
     const raw=localStorage.getItem(STATS_STORAGE_KEY);
+    console.log('[STATS DEBUG] raw localStorage value for',STATS_STORAGE_KEY,':',raw?raw.slice(0,300)+'…':'(null/empty)');
     if(raw){
       const data=JSON.parse(raw);
       Object.assign(playerStatsMap,data);
