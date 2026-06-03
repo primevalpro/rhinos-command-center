@@ -4234,10 +4234,17 @@ function buildPowerAccordion(team){
     const rank=fcLeagueRank(team.id,fcKey);
     const showUpside=key!=='flex'?upsideBadge(key):pos.frag==='antifragile'||pos.prob==='High';
     const showRisk=key!=='flex'?riskBadge(key):pos.frag==='fragile';
-    const starterNames=starters.slice(0,key==='wr'?3:key==='qb'?2:1).map(p=>p.split(' (')[0]).join(', ');
-    const depthCount=key==='flex'
-      ? team.rb.depth.length+team.wr.depth.length+team.te.depth.length
-      : (team[key]?.depth?.length||0);
+    let playerListHtml='';
+    if(key==='flex'){
+      const depthCount=team.rb.depth.length+team.wr.depth.length+team.te.depth.length;
+      if(depthCount>0)playerListHtml=`<div style="font-family:'DM Mono',monospace;font-size:9px;color:#444">${depthCount} depth</div>`;
+    } else {
+      const depthList=team[key]?.depth||[];
+      const starterHtml=starters.map(p=>`<div style="font-size:10px;color:#888;line-height:1.5">${p.split(' (')[0]}</div>`).join('');
+      const dividerHtml=(starters.length>0&&depthList.length>0)?`<div style="border-top:1px solid #222;margin:3px 0"></div>`:'';
+      const depthHtml=depthList.map(p=>`<div style="font-size:9px;color:#888;line-height:1.5;opacity:0.5">${p.split(' (')[0]}</div>`).join('');
+      playerListHtml=starterHtml+dividerHtml+depthHtml;
+    }
 
     cardsHtml+=`<div class="pos-card fc-${tier}">
       <div class="pos-card-header">
@@ -4248,8 +4255,7 @@ function buildPowerAccordion(team){
         ${gradeTag(pos.floor)}<span style="color:#333;font-size:10px">→</span>${gradeTag(pos.ceil)}
         ${fragTag(pos.frag)}
       </div>
-      ${starterNames?`<div style="font-size:10px;color:#888;margin-bottom:2px;line-height:1.4">${starterNames}</div>`:''}
-      ${depthCount>0?`<div style="font-family:'DM Mono',monospace;font-size:9px;color:#444">${depthCount} depth</div>`:''}
+      ${playerListHtml}
       ${pos.note?`<div style="font-family:'DM Mono',monospace;font-size:9px;color:#555;margin-top:3px;font-style:italic">${pos.note}</div>`:''}
       <div class="vol-badges">
         ${showUpside?`<span class="vol-upside">↑ UPSIDE</span>`:''}
