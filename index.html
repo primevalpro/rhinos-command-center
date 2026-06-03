@@ -240,7 +240,14 @@ textarea:focus{outline:none;border-color:#1D9E75}
   .detail-grid{grid-template-columns:1fr}
   .content{padding:12px}
   .tab{padding:8px 10px;font-size:12px}
+  .sub-tab{padding:5px 10px;font-size:11px}
 }
+.sub-tabs-row{background:#0e0e0e;border-bottom:1px solid #1a1a1a;padding:0 24px;display:none}
+.sub-tabs-inner{display:none;gap:0;overflow-x:auto}
+.sub-tabs-inner.active-group{display:flex}
+.sub-tab{font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;padding:6px 14px;cursor:pointer;border-bottom:2px solid transparent;color:#555;background:none;border-top:none;border-left:none;border-right:none;transition:color .15s;white-space:nowrap}
+.sub-tab:hover{color:#aaa}
+.sub-tab.active{color:#1D9E75;border-bottom-color:#1D9E75}
 </style>
 <script type="module">
 import{initializeApp}from'https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js';
@@ -273,11 +280,21 @@ window.rhFirebase={
   <div class="tabs">
     <button class="tab" onclick="showTab('overview',this)">League Overview</button>
     <button class="tab active" onclick="showTab('compare',this)">Team Compare</button>
-    <button class="tab" onclick="showTab('trade',this)">Trade Targets</button>
-    <button class="tab" onclick="showTab('flex',this)">Win the Flex</button>
-    <button class="tab" onclick="showTab('clock',this)">Dynasty Clock</button>
+    <button class="tab" data-group="trade" onclick="showParentTab('trade',this)">Trade</button>
     <button class="tab" onclick="showTab('power',this)">Power Rankings</button>
-    <button class="tab" onclick="showTab('age',this)">Age &amp; Draft</button>
+    <button class="tab" data-group="age-window" onclick="showParentTab('age-window',this)">Age Window</button>
+    <button class="tab" onclick="showTab('flex',this)">Win the Flex</button>
+    <button class="tab" onclick="showTab('waiver',this)">Waiver Wire</button>
+  </div>
+  <div class="sub-tabs-row" id="subTabsRow">
+    <div class="sub-tabs-inner" id="subTabs-trade">
+      <button class="sub-tab" onclick="showSubTab('trade-targets',this,'trade')">Trade Targets</button>
+      <button class="sub-tab" onclick="showSubTab('trade',this,'trade')">Trade Matcher</button>
+    </div>
+    <div class="sub-tabs-inner" id="subTabs-age-window">
+      <button class="sub-tab" onclick="showSubTab('age',this,'age-window')">Age &amp; Draft</button>
+      <button class="sub-tab" onclick="showSubTab('clock',this,'age-window')">Dynasty Clock</button>
+    </div>
   </div>
 </div>
 
@@ -2837,6 +2854,8 @@ function maxPickCap(){return Math.max(...TEAMS.map(t=>pickCapScore(t.picks2027))
 function showTab(tab,el){
   document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
   if(el)el.classList.add('active');
+  const subTabsRow=g('subTabsRow');
+  if(subTabsRow)subTabsRow.style.display='none';
   const c=g('mainContent');
   expandedRows=new Set();
   if(tab==='overview')renderOverview(c);
@@ -2848,6 +2867,38 @@ function showTab(tab,el){
   else if(tab==='production')renderTeamProduction(c);
   else if(tab==='flex')renderWinTheFlex(c);
   else if(tab==='clock')renderDynastyClock(c);
+  else if(tab==='waiver')renderComingSoon(c,'Waiver Wire');
+}
+
+function showParentTab(group,el){
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  const subTabsRow=g('subTabsRow');
+  subTabsRow.style.display='block';
+  document.querySelectorAll('.sub-tabs-inner').forEach(s=>{s.classList.remove('active-group');s.style.display='none';});
+  const groupEl=g('subTabs-'+group);
+  groupEl.style.display='flex';
+  groupEl.classList.add('active-group');
+  const firstSubTab=groupEl.querySelector('.sub-tab');
+  if(firstSubTab)firstSubTab.click();
+}
+
+function showSubTab(tab,el,group){
+  document.querySelectorAll('#subTabs-'+group+' .sub-tab').forEach(s=>s.classList.remove('active'));
+  el.classList.add('active');
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  const parentTab=document.querySelector('.tab[data-group="'+group+'"]');
+  if(parentTab)parentTab.classList.add('active');
+  const c=g('mainContent');
+  expandedRows=new Set();
+  if(tab==='age')renderAge(c);
+  else if(tab==='clock')renderDynastyClock(c);
+  else if(tab==='trade')renderTrade(c);
+  else if(tab==='trade-targets')renderComingSoon(c,'Trade Targets');
+}
+
+function renderComingSoon(c,name){
+  c.innerHTML=`<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:320px;gap:10px"><div style="font-family:'Barlow Condensed',sans-serif;font-size:30px;font-weight:700;color:#2a2a2a;letter-spacing:.06em;text-transform:uppercase">${name}</div><div style="font-family:'DM Mono',monospace;font-size:11px;color:#333;letter-spacing:.08em">Coming soon</div></div>`;
 }
 
 function openModal(id){g(id).classList.add('open')}
