@@ -4950,11 +4950,13 @@ function processImportResults(){
       }
     }
     g('resultsImportStatus').innerHTML=`<span style="color:#1D9E75">Updated ${results.length} teams successfully.</span>`;
+    setTimeout(()=>{g('resultsImportStatus').innerHTML='';},3000);
     saveAssessData();
     g('resultsImportText').value='';
     setTimeout(()=>{closeModal('modalImportResults');renderOverview(g('mainContent'));},1200);
   }catch(err){
     g('resultsImportStatus').innerHTML=`<span style="color:#d06040">Parse error: ${err.message}. Make sure you paste the raw JSON.</span>`;
+    setTimeout(()=>{g('resultsImportStatus').innerHTML='';},3000);
   }
 }
 
@@ -5010,11 +5012,11 @@ const FFPC_TEAM_MAP = {
 
 function processCsvImport(){
   const statusEl = g('importStatus');
-  if(!csvFileData){ statusEl.innerHTML='<span style="color:#d06040">Please select a CSV file first.</span>'; return; }
+  if(!csvFileData){ statusEl.innerHTML='<span style="color:#d06040">Please select a CSV file first.</span>'; setTimeout(()=>{statusEl.innerHTML='';},3000); return; }
   const mode = document.querySelector('input[name="importMode"]:checked').value;
 
   const lines = csvFileData.replace(/\r/g,'').split('\n');
-  if(!lines.length){ statusEl.innerHTML='<span style="color:#d06040">CSV appears empty.</span>'; return; }
+  if(!lines.length){ statusEl.innerHTML='<span style="color:#d06040">CSV appears empty.</span>'; setTimeout(()=>{statusEl.innerHTML='';},3000); return; }
 
   // Parse header to find column indices
   const header = lines[0].split(',').map(h=>h.trim().toUpperCase());
@@ -5029,6 +5031,7 @@ function processCsvImport(){
 
   if(iPlayer === -1 || iPos === -1 || iOwned === -1){
     statusEl.innerHTML='<span style="color:#d06040">Could not find required columns (PLAYER, POS, OWNED BY). Check the CSV format.</span>';
+    setTimeout(()=>{statusEl.innerHTML='';},3000);
     return;
   }
 
@@ -5081,7 +5084,7 @@ function processCsvImport(){
     rowCount++;
   }
 
-  if(!rowCount){ statusEl.innerHTML='<span style="color:#d06040">No owned players found. Check the CSV and try again.</span>'; return; }
+  if(!rowCount){ statusEl.innerHTML='<span style="color:#d06040">No owned players found. Check the CSV and try again.</span>'; setTimeout(()=>{statusEl.innerHTML='';},3000); return; }
 
   // Merge player stats into global map
   Object.assign(playerStatsMap, playerStatsMap_local);
@@ -5125,6 +5128,7 @@ function processCsvImport(){
 
   const modeLabel = mode === 'full' ? 'rosters + stats' : 'rosters';
   statusEl.innerHTML=`<span style="color:#1D9E75">Updated ${modeLabel} for ${teamsUpdated} teams (${rowCount} players). Use Copy Re-Assess Prompt to refresh grades.</span>`;
+  setTimeout(()=>{statusEl.innerHTML='';},3000);
   computeFloorGrades();
   saveRosterData();
   csvFileData = null;
