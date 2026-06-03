@@ -2444,7 +2444,8 @@ let overviewLenses=(()=>{try{const s=localStorage.getItem(LENSES_STORAGE_KEY);if
 
 // ── FC VALUE LOADER ──────────────────────────────────────────────────────────
 function stripNameSuffix(name){
-  return name.trim().replace(/\s+(jr\.|sr\.|ii|iii|iv)$/i,'').trim();
+  const bare=name.trim().replace(/\s*\([^)]*\)\s*$/,'').trim();
+  return bare.replace(/\s+(?:Jr\.|Sr\.|IV|III|II\b)\s*$/i,'').trim();
 }
 
 const FC_STORAGE_KEY='rhinos_fc_values';
