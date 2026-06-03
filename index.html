@@ -2442,6 +2442,10 @@ let ageLens='starters';
 let overviewLenses=(()=>{try{const s=localStorage.getItem(LENSES_STORAGE_KEY);if(s){const p=JSON.parse(s);const l={grades:!!p.grades,fragility:!!p.fragility,ages:!!p.ages,trends:!!p.trends,upside:!!p.upside,values:!!p.values};showAges=l.ages;return l;}}catch(e){}return{grades:false,fragility:false,ages:false,trends:false,upside:false,values:false};})();
 
 // ── FC VALUE LOADER ──────────────────────────────────────────────────────────
+function stripNameSuffix(name){
+  return name.replace(/\s+(jr\.|sr\.|ii|iii|iv)$/i,'').trim();
+}
+
 const FC_STORAGE_KEY='rhinos_fc_values';
 const FC_TS_KEY='rhinos_fc_timestamp';
 const FC_MAX_AGE_MS=7*24*60*60*1000; // 7 days
@@ -2464,7 +2468,7 @@ function loadFCFromCache(){
     if(!raw)return false;
     const parsed=JSON.parse(raw);
     if(Object.keys(parsed).length===0)return false;
-    Object.assign(fcValues,parsed);
+    Object.entries(parsed).forEach(([k,v])=>{fcValues[stripNameSuffix(k)]=v;});
     fcLoaded=true;
     return true;
   }catch(e){return false;}
@@ -2519,7 +2523,7 @@ async function loadFC(forceRefresh){
             if(!newPickValues[round]||val>newPickValues[round])newPickValues[round]=val;
           }
         } else {
-          newValues[name]=val;
+          newValues[stripNameSuffix(name)]=val;
         }
       });
     }
@@ -2576,11 +2580,11 @@ function processFCManualImport(){
           const round=parseInt(pickMatch[1]);
           if(round>=1&&round<=7&&(!newPickValues[round]||val>newPickValues[round]))newPickValues[round]=val;
         } else {
-          newValues[name]=val;
+          newValues[stripNameSuffix(name)]=val;
         }
       });
     } else if(typeof parsed==='object'){
-      Object.entries(parsed).forEach(([k,v])=>{newValues[k.toLowerCase().trim()]=v;});
+      Object.entries(parsed).forEach(([k,v])=>{newValues[stripNameSuffix(k.toLowerCase().trim())]=v;});
     }
     if(Object.keys(newValues).length===0)throw new Error('No valid entries found');
     Object.assign(fcValues,newValues);
@@ -2599,10 +2603,8 @@ function processFCManualImport(){
 
 function getFCValue(playerName){
   if(!playerName)return 0;
-  const clean=playerName.split(' (')[0].toLowerCase().trim();
-  if(fcValues[clean])return fcValues[clean];
-  const stripped=clean.replace(/\s+(jr\.|sr\.|ii|iii|iv)$/i,'').trim();
-  return (stripped!==clean&&fcValues[stripped])||0;
+  const clean=stripNameSuffix(playerName.split(' (')[0].toLowerCase().trim());
+  return fcValues[clean]||0;
 }
 
 // Returns FC live pick value for a round, falls back to hardcoded approximates
