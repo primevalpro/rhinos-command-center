@@ -226,8 +226,6 @@ textarea:focus{outline:none;border-color:#1D9E75}
 .vol-risk{font-family:'DM Mono',monospace;font-size:9px;padding:2px 5px;border-radius:3px;background:#2a0e1a;border:1px solid #c04060;color:#c04060}
 .acc-summary{background:#161616;border:1px solid #222;border-radius:6px;padding:10px 12px;margin-top:4px}
 .variance-tag{font-family:'DM Mono',monospace;font-size:10px;padding:2px 7px;border-radius:3px;font-weight:500;display:inline-block}
-.btn-download{background:#1a1a2e;border-color:#6a5aee;color:#9b8aff}
-.btn-download:hover{background:#22204a}
 .detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px}
 .det-section{background:#161616;border:1px solid #222;border-radius:6px;padding:10px 12px}
 .det-label{font-family:'Barlow Condensed',sans-serif;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:#444;margin-bottom:6px}
@@ -268,7 +266,6 @@ window.rhFirebase={
       <button class="btn btn-secondary btn-sm" onclick="openModal('modalImport')">Import</button>
       <button class="btn btn-copy btn-sm" onclick="copyReassessPrompt()" style="">Copy Re-Assess Prompt</button>
       <button class="btn btn-import btn-sm" onclick="openModal('modalImportResults')">Import Results</button>
-      <button class="btn btn-download btn-sm" onclick="downloadHTML()">⬇ Download HTML</button>
       <span id="fcStatusBadge" style="font-family:'DM Mono',monospace;font-size:10px;color:#555;display:flex;align-items:center;gap:6px"><span style="color:#1D9E75">FC ✓ updated today</span> <button class="btn btn-sm btn-secondary" style="font-size:9px;padding:2px 6px" onclick="loadFC(true)">Refresh</button> <button class="btn btn-sm btn-secondary" style="font-size:9px;padding:2px 6px" onclick="openModal('modalFCImport')">Manual Import</button></span>
       <span class="badge-us">brandont1223 · #630</span>
     </div>
@@ -5138,56 +5135,6 @@ function processCsvImport(){
 }
 
 // ── DOWNLOAD HTML ─────────────────────────────────────────────────────────────
-function downloadHTML(){
-  // Serialize current in-memory TEAMS state back into the HTML source
-  const src=document.documentElement.outerHTML;
-
-  // Build a serialized TEAMS array string from current in-memory state
-  function esc(s){return(s||'').replace(/\\/g,'\\\\').replace(/'/g,"\\'");}
-  function arr(a){return'['+a.map(s=>`'${esc(s)}'`).join(',')+']';}
-  function bool(b){return b?'true':'false';}
-
-  const teamsJs=TEAMS.map(t=>`  {
-    id:'${t.id}',name:'${esc(t.name)}',owner:'${esc(t.owner||'')}',us:${bool(t.us)},rostered:${t.rostered},
-    qb:{floor:'${t.qb.floor}',ceil:'${t.qb.ceil}',prob:'${t.qb.prob}',frag:'${t.qb.frag}',starters:${arr(t.qb.starters)},depth:${arr(t.qb.depth)}},
-    rb:{floor:'${t.rb.floor}',ceil:'${t.rb.ceil}',prob:'${t.rb.prob}',frag:'${t.rb.frag}',starters:${arr(t.rb.starters)},depth:${arr(t.rb.depth)}},
-    wr:{floor:'${t.wr.floor}',ceil:'${t.wr.ceil}',prob:'${t.wr.prob}',frag:'${t.wr.frag}',starters:${arr(t.wr.starters)},depth:${arr(t.wr.depth)}},
-    te:{floor:'${t.te.floor}',ceil:'${t.te.ceil}',prob:'${t.te.prob}',frag:'${t.te.frag}',starters:${arr(t.te.starters)},depth:${arr(t.te.depth)}},
-    flex:{floor:'${t.flex.floor}',ceil:'${t.flex.ceil}',prob:'${t.flex.prob}',frag:'${t.flex.frag}',note:'${esc(t.flex.note||'')}'},
-    flexDepth:{floor:'${t.flexDepth.floor}',ceil:'${t.flexDepth.ceil}',prob:'${t.flexDepth.prob}',frag:'${t.flexDepth.frag}',note:'${esc(t.flexDepth.note||'')}'},
-    overall:{floor:'${t.overall.floor}',ceil:'${t.overall.ceil}',delta:'${t.overall.delta}',frag:'${t.overall.frag}'},
-    window:'${t.window}',windowNote:'${esc(t.windowNote||'')}',primeConcern:${bool(t.primeConcern)},
-    philosophy:'${esc(t.philosophy||'')}',
-    needs:${arr(t.needs||[])},surplus:${arr(t.surplus||[])},
-    age:{QB:${t.age.QB},RB:${t.age.RB},WR:${t.age.WR},TE:${t.age.TE}},
-    picks2027:${arr(t.picks2027||[])},
-    powerRank:${t.powerRank||0},powerRationale:'${esc(t.powerRationale||'')}',
-    seasonRank:${t.seasonRank||0},seasonRationale:'${esc(t.seasonRationale||'')}'
-  }`).join(',\n');
-
-  // Replace the TEAMS array in the source — find block between `const TEAMS = [` and matching `];`
-  const teamsStart=src.indexOf('const TEAMS = [');
-  if(teamsStart===-1){alert('Could not locate TEAMS data in source.');return;}
-  // Find the matching closing `];` — walk char by char counting brackets
-  let depth=0,i=teamsStart,foundOpen=false,teamsEnd=-1;
-  while(i<src.length){
-    if(src[i]==='['){depth++;foundOpen=true;}
-    else if(src[i]===']'){depth--;if(foundOpen&&depth===0){teamsEnd=i+1;break;}}
-    i++;
-  }
-  if(teamsEnd===-1){alert('Could not parse TEAMS array boundaries.');return;}
-
-  const newSrc=src.slice(0,teamsStart)+`const TEAMS = [\n${teamsJs}\n]`+src.slice(teamsEnd);
-
-  const blob=new Blob([newSrc],{type:'text/html'});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');
-  a.href=url;a.download='index.html';
-  document.body.appendChild(a);a.click();
-  document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-}
-
 
 // ── WIN THE FLEX ──────────────────────────────────────────────────────────────
 function renderWinTheFlex(c){
