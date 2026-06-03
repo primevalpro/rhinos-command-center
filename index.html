@@ -2458,6 +2458,8 @@ let freeAgents=[];
 let tradeTargetsExpandedRows=new Set();
 let waiverPosFilter='all';
 let waiverSort='value';
+let tradeTargetsWindow=30;
+let waiverWindow=30;
 let ageLens='starters';
 let overviewLenses=(()=>{try{const s=localStorage.getItem(LENSES_STORAGE_KEY);if(s){const p=JSON.parse(s);const l={grades:!!p.grades,fragility:!!p.fragility,ages:!!p.ages,trends:!!p.trends,upside:!!p.upside,values:!!p.values};showAges=l.ages;return l;}}catch(e){}return{grades:false,fragility:false,ages:false,trends:false,upside:false,values:false};})();
 
@@ -2909,27 +2911,58 @@ function renderComingSoon(c,name){
 // ── TRADE TARGETS ─────────────────────────────────────────────────────────────
 function renderTradeTargets(c){
   const teams=TEAMS.filter(t=>!t.us);
-  function posGradeChip(pos,label){
-    const fl=gradeTag(pos.floor);
-    const grades=pos.ceil?`${fl}<span style="color:#333;font-size:10px;margin:0 1px">→</span>${gradeTag(pos.ceil)}`:fl;
-    return`<div style="display:flex;flex-direction:column;align-items:center;gap:2px"><span style="font-family:'DM Mono',monospace;font-size:8px;color:#444;letter-spacing:.06em;text-transform:uppercase">${label}</span><div style="display:flex;align-items:center;gap:1px">${grades}</div></div>`;
-  }
-  function trendBadge30(playerStr){
-    const d=getFCDelta(playerStr,30);
+  function trendBadge(playerStr){
+    const d=getFCDelta(playerStr,tradeTargetsWindow);
     if(!d)return'';
     return d.delta>0?`<span style="font-family:'DM Mono',monospace;font-size:9px;padding:1px 3px;border-radius:3px;background:#0a3d28;color:#1D9E75;white-space:nowrap;flex-shrink:0">▲ +${d.pct}%</span>`:`<span style="font-family:'DM Mono',monospace;font-size:9px;padding:1px 3px;border-radius:3px;background:#3a1510;color:#d06040;white-space:nowrap;flex-shrink:0">▼ ${d.pct}%</span>`;
   }
-  function playerRow(playerStr,pos,isStarter){
-    const name=playerStr.split(' (')[0];
-    const fc=getFCValue(playerStr);
-    const fcHtml=fc?`<span style="font-family:'DM Mono',monospace;font-size:10px;color:#4a9ede;flex-shrink:0">${fc}</span>`:'';
-    return`<div style="display:flex;align-items:center;gap:5px;padding:3px 6px;border-radius:3px;margin-bottom:1px${isStarter?';background:#0d1810':''}"><span class="pos-badge pos-${pos}" style="font-size:9px;padding:1px 4px;flex-shrink:0">${pos}</span><span style="font-size:11px;color:${isStarter?'#ccc':'#555'};flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${name}</span>${fcHtml}${trendBadge30(playerStr)}</div>`;
+  function posGradeChip(pos,label,team){
+    const pk=label.toLowerCase();
+    const fl=gradeTag(pos.floor);
+    const grades=pos.ceil?`${fl}<span style="color:#333;font-size:10px;margin:0 1px">→</span>${gradeTag(pos.ceil)}`:fl;
+    let depthHtml='';
+    if(pk!=='flex'&&team[pk]){
+      const total=(team[pk].starters||[]).length+(team[pk].depth||[]).length;
+      const col=total<=1?'#d06040':total<=3?'#d4950a':'#1D9E75';
+      depthHtml=`<span style="font-family:'DM Mono',monospace;font-size:9px;color:${col};margin-left:3px">${total}</span>`;
+    }
+    return`<div style="display:flex;flex-direction:column;align-items:center;gap:2px"><span style="font-family:'DM Mono',monospace;font-size:8px;color:#444;letter-spacing:.06em;text-transform:uppercase">${label}</span><div style="display:flex;align-items:center;gap:1px">${grades}${depthHtml}</div></div>`;
   }
-  let html='<div>';
+  function posColumn(team,pos){
+    const pk=pos.toLowerCase();
+    const st=team[pk].starters||[];
+    const dp=team[pk].depth||[];
+    let out='';
+    out+=st.map(p=>{
+      const name=p.split(' (')[0];
+      const fc=getFCValue(p);
+      const fcHtml=fc?`<span style="font-family:'DM Mono',monospace;font-size:9px;color:#4a9ede;flex-shrink:0">${fc}</span>`:'';
+      return`<div style="display:flex;align-items:center;gap:4px;padding:2px 4px;border-radius:3px;margin-bottom:1px;background:#0d1810"><span class="pos-badge pos-${pos}" style="font-size:9px;padding:1px 3px;flex-shrink:0">${pos}</span><span style="font-size:10px;color:#ccc;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${name}</span>${fcHtml}${trendBadge(p)}</div>`;
+    }).join('');
+    if(st.length&&dp.length)out+=`<div style="height:1px;background:#1e1e1e;margin:2px 0"></div>`;
+    out+=dp.map(p=>{
+      const name=p.split(' (')[0];
+      const fc=getFCValue(p);
+      const fcHtml=fc?`<span style="font-family:'DM Mono',monospace;font-size:9px;color:#333;flex-shrink:0">${fc}</span>`:'';
+      return`<div style="display:flex;align-items:center;gap:4px;padding:2px 4px;border-radius:3px;margin-bottom:1px"><span class="pos-badge pos-${pos}" style="font-size:9px;padding:1px 3px;flex-shrink:0;opacity:.5">${pos}</span><span style="font-size:10px;color:#555;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${name}</span>${fcHtml}${trendBadge(p)}</div>`;
+    }).join('');
+    return out;
+  }
+  const windowToggle=`<div style="display:flex;align-items:center;gap:8px;margin-bottom:12px"><span style="font-family:'DM Mono',monospace;font-size:10px;color:#555;letter-spacing:.06em;text-transform:uppercase">Trend window</span><div class="toggle-group"><button class="toggle-btn ${tradeTargetsWindow===30?'active':''}" onclick="tradeTargetsWindow=30;renderTradeTargets(g('mainContent'))">30d</button><button class="toggle-btn ${tradeTargetsWindow===60?'active':''}" onclick="tradeTargetsWindow=60;renderTradeTargets(g('mainContent'))">60d</button></div></div>`;
+  let html=windowToggle+'<div>';
   teams.forEach(t=>{
     const isExp=tradeTargetsExpandedRows.has(t.id);
-    const expandedHtml=isExp?`<div style="padding:10px 14px 12px;border-top:1px solid #1e1e1e">${['QB','RB','WR','TE'].map(pos=>{const pk=pos.toLowerCase();const st=t[pk].starters;const dp=t[pk].depth;return st.map(p=>playerRow(p,pos,true)).join('')+dp.map(p=>playerRow(p,pos,false)).join('');}).join('')}</div>`:'';
-    html+=`<div style="background:#161616;border:1px solid #222;border-radius:6px;overflow:hidden;margin-bottom:6px;cursor:pointer" onclick="toggleTradeTargetRow('${t.id}')"><div style="display:flex;align-items:center;gap:10px;padding:10px 14px;flex-wrap:wrap"><div style="min-width:150px;display:flex;align-items:center;gap:6px"><span style="font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;color:#ccc">${t.name}</span>${windowTag(t.window)}</div><div style="display:flex;gap:12px;flex-wrap:wrap">${posGradeChip(t.qb,'QB')}${posGradeChip(t.rb,'RB')}${posGradeChip(t.wr,'WR')}${posGradeChip(t.te,'TE')}${posGradeChip(t.flex,'Flex')}</div><span style="margin-left:auto;font-family:'DM Mono',monospace;font-size:10px;color:#444;flex-shrink:0">${isExp?'▲':'▼'}</span></div>${expandedHtml}</div>`;
+    const picks27=t.picks2027||[];
+    const summaryPicks=picks27.filter(p=>['R1','R2'].includes(p)).map(p=>{const r=parseInt(p.replace('R',''));return`<span class="pick-pill ${r===1?'r1':'r2'}">${p}</span>`;}).join('');
+    const picksSummaryHtml=summaryPicks?`<div style="display:flex;gap:3px;align-items:center">${summaryPicks}</div>`:'';
+    const needsPills=(t.needs||[]).map(n=>`<span class="need-pill" style="font-size:9px;padding:2px 6px">${n}</span>`).join('');
+    const needsHtml=needsPills?`<div style="display:flex;gap:4px;flex-wrap:wrap;margin-top:4px">${needsPills}</div>`:'';
+    let expandedHtml='';
+    if(isExp){
+      const allPicks27Html=picks27.map(p=>{const r=parseInt(p.replace('R',''));return`<span class="pick-pill ${r===1?'r1':r===2?'r2':r===3?'r3':''}">${p}</span>`;}).join('');
+      expandedHtml=`<div style="border-top:1px solid #1e1e1e;padding:10px 14px 12px"><div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px"><div><div style="font-family:'DM Mono',monospace;font-size:9px;color:#444;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">QB</div>${posColumn(t,'QB')}</div><div><div style="font-family:'DM Mono',monospace;font-size:9px;color:#444;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">RB</div>${posColumn(t,'RB')}</div><div><div style="font-family:'DM Mono',monospace;font-size:9px;color:#444;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">WR</div>${posColumn(t,'WR')}</div><div><div style="font-family:'DM Mono',monospace;font-size:9px;color:#444;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">TE</div>${posColumn(t,'TE')}</div><div><div style="font-family:'DM Mono',monospace;font-size:9px;color:#444;text-transform:uppercase;letter-spacing:.06em;margin-bottom:4px">Picks</div><div class="picks-grid" style="margin-top:0">${allPicks27Html}</div></div></div></div>`;
+    }
+    html+=`<div style="background:#161616;border:1px solid #222;border-radius:6px;overflow:hidden;margin-bottom:6px;cursor:pointer" onclick="toggleTradeTargetRow('${t.id}')"><div style="display:flex;align-items:flex-start;gap:10px;padding:10px 14px;flex-wrap:wrap"><div style="min-width:150px"><div style="display:flex;align-items:center;gap:6px;margin-bottom:${t.needs&&t.needs.length?'4':'0'}px"><span style="font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;color:#ccc">${t.name}</span>${windowTag(t.window)}</div>${needsHtml}</div><div style="display:flex;gap:12px;flex-wrap:wrap">${posGradeChip(t.qb,'QB',t)}${posGradeChip(t.rb,'RB',t)}${posGradeChip(t.wr,'WR',t)}${posGradeChip(t.te,'TE',t)}${posGradeChip(t.flex,'Flex',t)}</div>${picksSummaryHtml}<span style="margin-left:auto;font-family:'DM Mono',monospace;font-size:10px;color:#444;flex-shrink:0">${isExp?'▲':'▼'}</span></div>${expandedHtml}</div>`;
   });
   html+='</div>';
   c.innerHTML=html;
@@ -2942,14 +2975,14 @@ function toggleTradeTargetRow(id){
 
 // ── WAIVER WIRE ───────────────────────────────────────────────────────────────
 function renderWaiverWire(c){
-  function trendBadge30(playerStr){
-    const d=getFCDelta(playerStr,30);
+  function trendBadge(playerStr){
+    const d=getFCDelta(playerStr,waiverWindow);
     if(!d)return'';
     return d.delta>0?`<span style="font-family:'DM Mono',monospace;font-size:9px;padding:1px 3px;border-radius:3px;background:#0a3d28;color:#1D9E75;white-space:nowrap;flex-shrink:0">▲ +${d.pct}%</span>`:`<span style="font-family:'DM Mono',monospace;font-size:9px;padding:1px 3px;border-radius:3px;background:#3a1510;color:#d06040;white-space:nowrap;flex-shrink:0">▼ ${d.pct}%</span>`;
   }
   const posFilters=['all','QB','RB','WR','TE'];
   const filterHtml=posFilters.map(f=>`<button class="filter-btn ${waiverPosFilter===f?'active':''}" onclick="waiverPosFilter='${f}';renderWaiverWire(g('mainContent'))">${f==='all'?'All':f}</button>`).join('');
-  let html=`<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:14px"><div class="filter-row" style="margin:0;gap:6px">${filterHtml}</div><div class="toggle-group"><button class="toggle-btn ${waiverSort==='value'?'active':''}" onclick="waiverSort='value';renderWaiverWire(g('mainContent'))">By Value</button><button class="toggle-btn ${waiverSort==='rising'?'active':''}" onclick="waiverSort='rising';renderWaiverWire(g('mainContent'))">By Rising</button></div></div>`;
+  let html=`<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;margin-bottom:14px"><div class="filter-row" style="margin:0;gap:6px">${filterHtml}</div><div style="display:flex;gap:8px;align-items:center"><div class="toggle-group"><button class="toggle-btn ${waiverSort==='value'?'active':''}" onclick="waiverSort='value';renderWaiverWire(g('mainContent'))">By Value</button><button class="toggle-btn ${waiverSort==='rising'?'active':''}" onclick="waiverSort='rising';renderWaiverWire(g('mainContent'))">By Rising</button></div><div class="toggle-group"><button class="toggle-btn ${waiverWindow===30?'active':''}" onclick="waiverWindow=30;renderWaiverWire(g('mainContent'))">30d</button><button class="toggle-btn ${waiverWindow===60?'active':''}" onclick="waiverWindow=60;renderWaiverWire(g('mainContent'))">60d</button></div></div></div>`;
   if(!freeAgents.length){
     html+=`<div style="display:flex;align-items:center;justify-content:center;height:200px"><span style="font-family:'DM Mono',monospace;font-size:11px;color:#333;letter-spacing:.06em">Import a CSV to populate the waiver wire</span></div>`;
     c.innerHTML=html;return;
@@ -2958,7 +2991,7 @@ function renderWaiverWire(c){
   if(waiverSort==='value'){
     players.sort((a,b)=>(getFCValue(b.name)||0)-(getFCValue(a.name)||0));
   } else {
-    players.sort((a,b)=>{const da=getFCDelta(a.name,30);const db=getFCDelta(b.name,30);const va=da&&da.delta>0?da.delta:0;const vb=db&&db.delta>0?db.delta:0;if(vb!==va)return vb-va;return(getFCValue(b.name)||0)-(getFCValue(a.name)||0);});
+    players.sort((a,b)=>{const da=getFCDelta(a.name,waiverWindow);const db=getFCDelta(b.name,waiverWindow);const va=da&&da.delta>0?da.delta:0;const vb=db&&db.delta>0?db.delta:0;if(vb!==va)return vb-va;return(getFCValue(b.name)||0)-(getFCValue(a.name)||0);});
   }
   if(!players.length){
     html+=`<div style="font-family:'DM Mono',monospace;font-size:11px;color:#333;padding:20px 0">No ${waiverPosFilter} free agents in the waiver wire.</div>`;
@@ -2967,7 +3000,7 @@ function renderWaiverWire(c){
       const name=fa.name.split(' (')[0];
       const fc=getFCValue(fa.name)||fa.fcValue;
       const fcHtml=fc?`<span style="font-family:'DM Mono',monospace;font-size:11px;color:#4a9ede;flex-shrink:0">${fc}</span>`:'';
-      return`<div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:#161616;border:1px solid #222;border-radius:6px;margin-bottom:4px"><span class="pos-badge pos-${fa.pos}">${fa.pos}</span><span style="font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:600;color:#ccc;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${name}</span>${fcHtml}${trendBadge30(fa.name)}</div>`;
+      return`<div style="display:flex;align-items:center;gap:8px;padding:8px 12px;background:#161616;border:1px solid #222;border-radius:6px;margin-bottom:4px"><span class="pos-badge pos-${fa.pos}">${fa.pos}</span><span style="font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:600;color:#ccc;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${name}</span>${fcHtml}${trendBadge(fa.name)}</div>`;
     }).join('');
   }
   c.innerHTML=html;
@@ -3019,7 +3052,7 @@ async function writeFCHistory(vals){
   try{
     const today=new Date().toISOString().slice(0,10);
     fcHistory[today]=vals;
-    const cutoff=new Date();cutoff.setDate(cutoff.getDate()-30);
+    const cutoff=new Date();cutoff.setDate(cutoff.getDate()-60);
     const cutoffStr=cutoff.toISOString().slice(0,10);
     Object.keys(fcHistory).forEach(d=>{if(d<cutoffStr)delete fcHistory[d];});
     window.rhFirebase?.save('fcHistory',{...fcHistory});
