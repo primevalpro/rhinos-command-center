@@ -2437,9 +2437,7 @@ let fcPickValues={}; // {1:3500, 2:1800, ...}
 
 // ── OVERVIEW LENS TOGGLES ────────────────────────────────────────────────────
 const LENSES_STORAGE_KEY='rhinos_overview_lenses';
-const FC_TRENDS_SNAPSHOT_KEY='rhinos_fc_trends_snapshot';
-const FC_TRENDS_SNAPSHOT_TS_KEY='rhinos_fc_trends_snapshot_ts';
-const FC_TRENDS_MAX_AGE_MS=7*24*60*60*1000;
+let fcHistory={};
 let overviewLenses=(()=>{try{const s=localStorage.getItem(LENSES_STORAGE_KEY);if(s){const p=JSON.parse(s);const l={grades:!!p.grades,fragility:!!p.fragility,ages:!!p.ages,trends:!!p.trends,upside:!!p.upside,values:!!p.values};showAges=l.ages;return l;}}catch(e){}return{grades:false,fragility:false,ages:false,trends:false,upside:false,values:false};})();
 
 // ── FC VALUE LOADER ──────────────────────────────────────────────────────────
@@ -2529,6 +2527,7 @@ async function loadFC(forceRefresh){
       if(Object.keys(newPickValues).length>0)Object.assign(fcPickValues,newPickValues);
       saveFCToCache(newValues);
       fcLoaded=true;
+      writeFCHistory(newValues);
       console.log(`FantasyCalc loaded: ${Object.keys(newValues).length} players, ${Object.keys(newPickValues).length} pick rounds`);
       computeFloorGrades();
       renderOverview(g('mainContent'));
@@ -2586,6 +2585,7 @@ function processFCManualImport(){
     Object.assign(fcValues,newValues);
     if(Object.keys(newPickValues).length>0)Object.assign(fcPickValues,newPickValues);
     saveFCToCache(newValues);
+    writeFCHistory(newValues);
     fcLoaded=true;
     g('fcImportStatus').innerHTML=`<span style="color:#1D9E75">Loaded ${Object.keys(newValues).length} player values.</span>`;
     updateFCStatusBadge();
@@ -2869,29 +2869,36 @@ function showUpsidePopover(anchor){
   pop.style.top=top+'px';
 }
 document.addEventListener('click',()=>{const p=document.getElementById('upsidePopover');if(p)p.style.display='none';});
-function manageFCTrendsSnapshot(){
-  if(!fcLoaded||Object.keys(fcValues).length===0)return;
+async function writeFCHistory(vals){
+  if(!vals||Object.keys(vals).length===0)return;
   try{
-    const ts=localStorage.getItem(FC_TRENDS_SNAPSHOT_TS_KEY);
-    const isStale=!ts||(Date.now()-parseInt(ts))>FC_TRENDS_MAX_AGE_MS;
-    if(isStale){
-      localStorage.setItem(FC_TRENDS_SNAPSHOT_KEY,JSON.stringify(fcValues));
-      window.rhFirebase?.save(FC_TRENDS_SNAPSHOT_KEY,JSON.stringify(fcValues));
-      localStorage.setItem(FC_TRENDS_SNAPSHOT_TS_KEY,String(Date.now()));
-    }
+    const today=new Date().toISOString().slice(0,10);
+    fcHistory[today]=vals;
+    const cutoff=new Date();cutoff.setDate(cutoff.getDate()-30);
+    const cutoffStr=cutoff.toISOString().slice(0,10);
+    Object.keys(fcHistory).forEach(d=>{if(d<cutoffStr)delete fcHistory[d];});
+    window.rhFirebase?.save('fcHistory',{...fcHistory});
   }catch(e){}
 }
-function getSnapshotValues(){
-  try{const raw=localStorage.getItem(FC_TRENDS_SNAPSHOT_KEY);if(raw)return JSON.parse(raw);}catch(e){}
-  return{};
+function getHistoricalValues(){
+  const dates=Object.keys(fcHistory).sort();
+  if(dates.length<5)return null;
+  const today=new Date();
+  const target=new Date(today);target.setDate(target.getDate()-5);
+  const targetStr=target.toISOString().slice(0,10);
+  if(fcHistory[targetStr])return fcHistory[targetStr];
+  const windowEnd=new Date(today);windowEnd.setDate(windowEnd.getDate()-1);
+  const windowEndStr=windowEnd.toISOString().slice(0,10);
+  const inWindow=dates.filter(d=>d>=targetStr&&d<=windowEndStr);
+  if(inWindow.length===0)return null;
+  return fcHistory[inWindow[0]]||null;
 }
 
 // ── OVERVIEW ──────────────────────────────────────────────────────────────────
 function renderOverview(c){
   const filtered=TEAMS.filter(t=>overviewFilter==='all'||t.window===overviewFilter);
 
-  manageFCTrendsSnapshot();
-  const snapshotVals=getSnapshotValues();
+  const snapshotVals=getHistoricalValues();
 
   // Inline pos header: render grade chips and/or frag badge per active lens
   const lensedPosHdr=(pos)=>{
@@ -2922,14 +2929,15 @@ function renderOverview(c){
     const age=showAges?getPlayerAge(p):null;
     const ageHtml=age?`<span style="font-family:'DM Mono',monospace;font-size:9px;padding:1px 4px;border-radius:3px;background:#1e2a1e;color:#4a8c60;margin-left:2px">${age}</span>`:'';
     let trendHtml='';
-    if(overviewLenses.trends){
+    if(overviewLenses.trends&&snapshotVals){
       const clean=name.toLowerCase().trim();
       const cur=fcValues[clean]||0;
       const snap=snapshotVals[clean]||0;
       if(cur&&snap){
         const delta=cur-snap;
-        if(delta>150)trendHtml=`<span style="font-family:'DM Mono',monospace;font-size:9px;padding:1px 3px;border-radius:3px;background:#0a3d28;color:#1D9E75;margin-left:2px" title="+${delta} pts">▲</span>`;
-        else if(delta<-150)trendHtml=`<span style="font-family:'DM Mono',monospace;font-size:9px;padding:1px 3px;border-radius:3px;background:#3a1510;color:#d06040;margin-left:2px" title="${delta} pts">▼</span>`;
+        const threshold=cur>=2000?cur*0.05:cur>=500?cur*0.1:cur*0.2;
+        if(delta>=threshold)trendHtml=`<span style="font-family:'DM Mono',monospace;font-size:9px;padding:1px 3px;border-radius:3px;background:#0a3d28;color:#1D9E75;margin-left:2px">▲ +${Math.round(delta)}</span>`;
+        else if(delta<=-threshold)trendHtml=`<span style="font-family:'DM Mono',monospace;font-size:9px;padding:1px 3px;border-radius:3px;background:#3a1510;color:#d06040;margin-left:2px">▼ ${Math.round(delta)}</span>`;
       }
     }
     let upsideHtml='';
@@ -3075,11 +3083,11 @@ function renderOverview(c){
                 const posHtml=`<span class="pos-badge pos-${item.pos}" style="font-size:9px;padding:1px 4px">${item.pos}</span>`;
                 const fcHtml=item.fcVal&&isStarter?`<span style="font-family:'DM Mono',monospace;font-size:9px;color:#4a9ede;margin-left:auto">${item.fcVal}</span>`:'';
                 let trendHtml='';
-                if(overviewLenses.trends){
+                if(overviewLenses.trends&&snapshotVals){
                   const clean=name.toLowerCase().trim();
                   const cur=fcValues[clean]||0;
                   const snap=snapshotVals[clean]||0;
-                  if(cur&&snap){const delta=cur-snap;if(delta>150)trendHtml=`<span style="font-family:'DM Mono',monospace;font-size:9px;padding:1px 3px;border-radius:3px;background:#0a3d28;color:#1D9E75;margin-left:2px" title="+${delta} pts">▲</span>`;else if(delta<-150)trendHtml=`<span style="font-family:'DM Mono',monospace;font-size:9px;padding:1px 3px;border-radius:3px;background:#3a1510;color:#d06040;margin-left:2px" title="${delta} pts">▼</span>`;}
+                  if(cur&&snap){const delta=cur-snap;const threshold=cur>=2000?cur*0.05:cur>=500?cur*0.1:cur*0.2;if(delta>=threshold)trendHtml=`<span style="font-family:'DM Mono',monospace;font-size:9px;padding:1px 3px;border-radius:3px;background:#0a3d28;color:#1D9E75;margin-left:2px">▲ +${Math.round(delta)}</span>`;else if(delta<=-threshold)trendHtml=`<span style="font-family:'DM Mono',monospace;font-size:9px;padding:1px 3px;border-radius:3px;background:#3a1510;color:#d06040;margin-left:2px">▼ ${Math.round(delta)}</span>`;}
                 }
                 let upsideHtml='';
                 let flexNameHtml=name;
@@ -3176,7 +3184,7 @@ function renderOverview(c){
     const legendParts=[];
     if(overviewLenses.grades)legendParts.push('grade range = Floor→Ceil');
     if(overviewLenses.fragility)legendParts.push('R = Robust &nbsp;·&nbsp; AF = Antifragile &nbsp;·&nbsp; F = Fragile');
-    if(overviewLenses.trends)legendParts.push('▲▼ = FC value trend vs 7-day snapshot (±150 threshold)');
+    if(overviewLenses.trends)legendParts.push('▲▼ = FC trend vs 5-day history (tiered threshold)');
     if(overviewLenses.upside)legendParts.push('▲▲ = high upside &nbsp;·&nbsp; ▲ = medium upside');
     if(legendParts.length>0)html+=`<div style="font-size:11px;color:#333;margin-top:12px;padding:0 2px">${legendParts.join(' &nbsp;·&nbsp; ')}</div>`;
 
@@ -5333,11 +5341,14 @@ window.addEventListener('DOMContentLoaded',async()=>{
       new Promise(r=>setTimeout(()=>r(null),3000))
     ]);
     if(cloudData){
-      ['rhinos_assess_data','rhinos_roster_data','rhinos_fc_trends_snapshot'].forEach(key=>{
+      ['rhinos_assess_data','rhinos_roster_data'].forEach(key=>{
         if(cloudData[key]!=null&&cloudData[key]!==localStorage.getItem(key)){
           localStorage.setItem(key,cloudData[key]);
         }
       });
+      if(cloudData.fcHistory&&typeof cloudData.fcHistory==='object'){
+        Object.assign(fcHistory,cloudData.fcHistory);
+      }
     }
   }catch(e){}
   loadPersistedData();
