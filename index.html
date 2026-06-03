@@ -5086,11 +5086,9 @@ function processCsvImport(){
   // Merge player stats into global map
   Object.assign(playerStatsMap, playerStatsMap_local);
   if(mode === 'full'){
-    try{
-      const serialized=JSON.stringify(playerStatsMap);
-      localStorage.setItem(STATS_STORAGE_KEY,serialized);
-      window.rhFirebase?.save(STATS_STORAGE_KEY,serialized);
-    }catch(e){console.warn('Stats save failed:',e.message);}
+    const serialized=JSON.stringify(playerStatsMap);
+    try{localStorage.setItem(STATS_STORAGE_KEY,serialized);}catch(e){console.warn('Stats localStorage save failed:',e.message);}
+    window.rhFirebase?.save(STATS_STORAGE_KEY,serialized);
   }
 
   // Apply rosters to TEAMS data
@@ -5408,8 +5406,9 @@ window.addEventListener('DOMContentLoaded',async()=>{
     ]);
     if(cloudData){
       ['rhinos_assess_data','rhinos_roster_data','rhinos_stats_data'].forEach(key=>{
-        if(cloudData[key]!=null&&cloudData[key]!==localStorage.getItem(key)){
-          localStorage.setItem(key,cloudData[key]);
+        const cloudVal=cloudData[key];
+        if(cloudVal!=null&&cloudVal!==''&&cloudVal!==localStorage.getItem(key)){
+          localStorage.setItem(key,cloudVal);
         }
       });
       if(cloudData.fcHistory&&typeof cloudData.fcHistory==='object'){
