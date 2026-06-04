@@ -2445,6 +2445,7 @@ const ROSTER_STORAGE_KEY='rhinos_roster_data';
 const ASSESS_STORAGE_KEY='rhinos_assess_data';
 const STATS_STORAGE_KEY='rhinos_stats_data';
 const FA_STORAGE_KEY='rhinos_fa_data';
+const CUSTOM_GRADES_STORAGE_KEY='rhinos_custom_grades';
 
 // Power rankings accordion state
 let powerExpandedRows=new Set();
@@ -2461,7 +2462,8 @@ let waiverSort='value';
 let tradeTargetsWindow=30;
 let waiverWindow=30;
 let ageLens='starters';
-let overviewLenses=(()=>{try{const s=localStorage.getItem(LENSES_STORAGE_KEY);if(s){const p=JSON.parse(s);const l={grades:!!p.grades,fragility:!!p.fragility,ages:!!p.ages,trends:!!p.trends,upside:!!p.upside,values:!!p.values};showAges=l.ages;return l;}}catch(e){}return{grades:false,fragility:false,ages:false,trends:false,upside:false,values:false};})();
+let overviewLenses=(()=>{try{const s=localStorage.getItem(LENSES_STORAGE_KEY);if(s){const p=JSON.parse(s);const l={grades:!!p.grades,fragility:!!p.fragility,ages:!!p.ages,trends:!!p.trends,upside:!!p.upside,values:!!p.values,myGrades:!!p.myGrades};showAges=l.ages;return l;}}catch(e){}return{grades:false,fragility:false,ages:false,trends:false,upside:false,values:false,myGrades:false};})();
+let customGrades=(()=>{try{const s=localStorage.getItem(CUSTOM_GRADES_STORAGE_KEY);return s?JSON.parse(s):{};}catch(e){}return{};})();
 
 // ── FC VALUE LOADER ──────────────────────────────────────────────────────────
 function stripNameSuffix(name){
@@ -3022,6 +3024,18 @@ function toggleOverviewLens(lens){
   try{localStorage.setItem(LENSES_STORAGE_KEY,JSON.stringify(overviewLenses));}catch(e){}
   renderOverview(g('mainContent'));
 }
+function cycleCustomGrade(teamId){
+  const seq=['S','A','B','C'];
+  const cur=customGrades[teamId]||null;
+  const idx=cur?seq.indexOf(cur):-1;
+  const next=seq[idx+1]||null;
+  if(next)customGrades[teamId]=next;
+  else delete customGrades[teamId];
+  const serialized=JSON.stringify(customGrades);
+  try{localStorage.setItem(CUSTOM_GRADES_STORAGE_KEY,serialized);}catch(e){}
+  window.rhFirebase?.save(CUSTOM_GRADES_STORAGE_KEY,serialized);
+  renderOverview(g('mainContent'));
+}
 function showUpsidePopover(anchor){
   const pop=document.getElementById('upsidePopover');
   if(!pop)return;
@@ -3184,6 +3198,7 @@ function renderOverview(c){
       <button class="toggle-btn ${overviewLenses.trends?'active':''}" onclick="toggleOverviewLens('trends')">Trends</button>
       <button class="toggle-btn ${overviewLenses.upside?'active':''}" onclick="toggleOverviewLens('upside')">Upside</button>
       <button class="toggle-btn ${overviewLenses.values?'active':''}" onclick="toggleOverviewLens('values')">Values</button>
+      <button class="toggle-btn ${overviewLenses.myGrades?'active':''}" onclick="toggleOverviewLens('myGrades')">My Grades</button>
     </div>
   </div>`;
 
@@ -3215,7 +3230,10 @@ function renderOverview(c){
           <div style="display:flex;align-items:flex-start;gap:6px">
             <span class="chev ${isExp?'open':''}" id="chev-${t.id}" style="margin-top:3px">▼</span>
             <div>
-              <div class="tname ${t.us?'us':''}">${t.us?'★ ':''}${t.name}</div>
+              <div style="display:flex;align-items:center;gap:6px">
+                <div class="tname ${t.us?'us':''}">${t.us?'★ ':''}${t.name}</div>
+                ${(()=>{if(!overviewLenses.myGrades)return'';const gr=customGrades[t.id]||null;const colors={S:'#1D9E75',A:'#4a9ede',B:'#888',C:'#d06040'};const bgs={S:'#0a3d28',A:'#0a1e3a',B:'#2a2826',C:'#3a1510'};return gr?`<span onclick="event.stopPropagation();cycleCustomGrade('${t.id}')" style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;padding:2px 7px;border-radius:3px;background:${bgs[gr]};color:${colors[gr]};cursor:pointer;display:inline-block;flex-shrink:0">${gr}</span>`:`<span onclick="event.stopPropagation();cycleCustomGrade('${t.id}')" style="font-family:'Barlow Condensed',sans-serif;font-weight:700;font-size:13px;padding:2px 7px;border-radius:3px;background:#1a1a1a;color:#555;cursor:pointer;display:inline-block;flex-shrink:0">–</span>`;})()}
+              </div>
               <div class="sym-row">
                 <span class="sym sym-overall">${gradeTagInline(t.overall.floor)}→${gradeTagInline(t.overall.ceil)}</span>
                 <span class="sym ${symWindow}">${{winnow:'Win Now',open:'Contending',opening:'Rising',retool:'Retooling',rebuild:'Rebuilding'}[t.window]||t.window}</span>
@@ -4955,7 +4973,8 @@ function saveRosterData(){
         rbStarters:t.rb.starters,rbDepth:t.rb.depth,
         wrStarters:t.wr.starters,wrDepth:t.wr.depth,
         teStarters:t.te.starters,teDepth:t.te.depth,
-        rostered:t.rostered
+        rostered:t.rostered,
+        picks2027:t.picks2027
       };
     });
     localStorage.setItem(ROSTER_STORAGE_KEY,JSON.stringify(data));
@@ -5005,9 +5024,16 @@ function loadPersistedData(){
         if(d.teStarters)t.te.starters=d.teStarters;
         if(d.teDepth)t.te.depth=d.teDepth;
         if(d.rostered)t.rostered=d.rostered;
+        if(d.picks2027)t.picks2027=d.picks2027;
       });
     }
   }catch(e){console.warn('Roster load failed:',e.message);}
+
+  // Load custom grades
+  try{
+    const raw=localStorage.getItem(CUSTOM_GRADES_STORAGE_KEY);
+    if(raw)customGrades=JSON.parse(raw)||{};
+  }catch(e){console.warn('Custom grades load failed:',e.message);}
 
   // Load assess data
   try{
@@ -5215,6 +5241,9 @@ function processCsvImport(){
     return;
   }
 
+  // Reset picks2027 for all teams before processing CSV
+  TEAMS.forEach(t => { t.picks2027 = []; });
+
   // Build per-team roster from CSV
   const rosterMap = {}; // teamId -> { QB:[], RB:[], WR:[], TE:[] }
   const statsMap  = {}; // teamId -> { fp, ppg, proj, own }
@@ -5240,6 +5269,25 @@ function processCsvImport(){
     const { displayName, nfl } = parsePlayerName(cols[iPlayer]||'');
     const pos = (cols[iPos]||'').trim();
     const playerStr = `${displayName} (${nfl})`;
+
+    // Pick detection — handle before normal player logic
+    if(pos.toLowerCase() === 'pick'){
+      const rawName = (cols[iPlayer]||'').trim();
+      const year = parseInt(rawName.split(' ')[0]);
+      if(year === 2027 && ownedBy){
+        const pickTeamId = FFPC_TEAM_MAP[ownedBy];
+        if(pickTeamId){
+          const pickTeam = TEAMS.find(t => t.id === pickTeamId);
+          if(pickTeam){
+            const roundWord = rawName.split(' ')[1] || '';
+            const round = parseInt(roundWord);
+            const roundKey = round === 1 ? 'R1' : round === 2 ? 'R2' : round === 3 ? 'R3' : 'R4';
+            pickTeam.picks2027.push(roundKey);
+          }
+        }
+      }
+      continue; // never add picks to roster
+    }
 
     if(!ownedBy){
       if(['QB','RB','WR','TE'].includes(pos))localFAs.push({name:playerStr,pos,fcValue:getFCValue(playerStr)});
@@ -5548,7 +5596,7 @@ window.addEventListener('DOMContentLoaded',async()=>{
       new Promise(r=>setTimeout(()=>r(null),3000))
     ]);
     if(cloudData){
-      ['rhinos_assess_data','rhinos_roster_data','rhinos_stats_data','rhinos_fa_data'].forEach(key=>{
+      ['rhinos_assess_data','rhinos_roster_data','rhinos_stats_data','rhinos_fa_data','rhinos_custom_grades'].forEach(key=>{
         const cloudVal=cloudData[key];
         if(cloudVal!=null&&cloudVal!==''&&cloudVal!==localStorage.getItem(key)){
           localStorage.setItem(key,cloudVal);
