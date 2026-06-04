@@ -2415,6 +2415,7 @@ const TEAMS = [
 const GRADE_ORDER={S:4,A:3,B:2,C:1};
 let overviewFilter='all';
 let overviewMode='assessment';
+let gradeFilter='all'; // not persisted — resets on page load
 let showAges=false;
 let compareA='rhinos',compareB='wheel';
 let compareMode='production'; // 'production' or 'construction'
@@ -3021,6 +3022,7 @@ function posIndicators(pos){
 function toggleOverviewLens(lens){
   overviewLenses[lens]=!overviewLenses[lens];
   if(lens==='ages')showAges=overviewLenses.ages;
+  if(lens==='myGrades'&&!overviewLenses.myGrades)gradeFilter='all';
   try{localStorage.setItem(LENSES_STORAGE_KEY,JSON.stringify(overviewLenses));}catch(e){}
   renderOverview(g('mainContent'));
 }
@@ -3110,7 +3112,11 @@ function getFCDelta(playerName,days){
 // ── OVERVIEW ──────────────────────────────────────────────────────────────────
 function renderOverview(c){
   const headerH=(document.querySelector('.app-header')?.offsetHeight||0);
-  const filtered=TEAMS.filter(t=>overviewFilter==='all'||t.window===overviewFilter);
+  const windowFiltered=TEAMS.filter(t=>overviewFilter==='all'||t.window===overviewFilter);
+  const filtered=gradeFilter==='all'?windowFiltered:windowFiltered.filter(t=>{
+    const g=customGrades[t.id]||null;
+    return gradeFilter==='ungraded'?!g:g===gradeFilter;
+  });
 
   const snapshotVals=getHistoricalValues();
 
@@ -3201,7 +3207,20 @@ function renderOverview(c){
       <button class="toggle-btn ${overviewLenses.values?'active':''}" onclick="toggleOverviewLens('values')">Values</button>
       <button class="toggle-btn ${overviewLenses.myGrades?'active':''}" onclick="toggleOverviewLens('myGrades')">My Grades</button>
     </div>
-  </div>`;
+  </div>
+  ${overviewLenses.myGrades?`<div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;flex-wrap:wrap">
+    ${[
+      {key:'all',label:'All',color:'#666',bg:'#1e1e1e',activeBg:'#2a2a2a',activeColor:'#ccc'},
+      {key:'S',label:'S',color:'#1D9E75',bg:'#0a3d28',activeBg:'#0a3d28',activeColor:'#1D9E75'},
+      {key:'A',label:'A',color:'#4a9ede',bg:'#0a1e3a',activeBg:'#0a1e3a',activeColor:'#4a9ede'},
+      {key:'B',label:'B',color:'#888',bg:'#2a2826',activeBg:'#2a2826',activeColor:'#888'},
+      {key:'C',label:'C',color:'#d06040',bg:'#3a1510',activeBg:'#3a1510',activeColor:'#d06040'},
+      {key:'ungraded',label:'Ungraded',color:'#555',bg:'#1a1a1a',activeBg:'#242424',activeColor:'#777'}
+    ].map(f=>{
+      const isActive=gradeFilter===f.key;
+      return`<button onclick="gradeFilter='${f.key}';renderOverview(g('mainContent'))" style="font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;padding:4px 12px;border-radius:4px;cursor:pointer;border:1px solid ${isActive?(f.key==='all'?'#444':f.bg):f.bg};background:${isActive?(f.key==='all'?'#2a2a2a':f.bg):'transparent'};color:${isActive?f.activeColor:(f.key==='all'?'#555':f.color)};transition:all .15s">${f.label}</button>`;
+    }).join('')}
+  </div>`:''}  `;
 
   if(overviewMode==='assessment'){
     html+=`<div style="overflow-x:auto"><table class="overview-table">
@@ -3468,6 +3487,12 @@ function renderOverview(c){
       </tr>`;
     });
     html+=`</tbody></table></div>`;
+  }
+
+  if(overviewLenses.myGrades&&gradeFilter!=='all'){
+    const total=windowFiltered.length;
+    const shown=filtered.length;
+    html+=`<div style="font-family:'DM Mono',monospace;font-size:11px;color:#444;margin-top:10px;padding:0 2px">Showing ${shown} of ${total} teams &nbsp;·&nbsp; <span onclick="gradeFilter='all';renderOverview(g('mainContent'))" style="color:#4a9ede;cursor:pointer;text-decoration:underline;text-underline-offset:2px">Clear filter</span></div>`;
   }
 
   c.innerHTML=html;
