@@ -271,6 +271,7 @@ window.rhFirebase={
     <div class="logo">Rhinos Dynasty Command Center</div>
     <div class="header-actions">
       <button class="btn btn-secondary btn-sm" onclick="openModal('modalImport')">Import</button>
+      <button class="btn btn-secondary btn-sm" onclick="openModal('modalPicksImport')">Picks</button>
       <button class="btn btn-copy btn-sm" onclick="copyReassessPrompt()" style="">Copy Re-Assess Prompt</button>
       <button class="btn btn-import btn-sm" onclick="openModal('modalImportResults')">Import Results</button>
       <span id="fcStatusBadge" style="font-family:'DM Mono',monospace;font-size:10px;color:#555;display:flex;align-items:center;gap:6px"><span style="color:#1D9E75">FC ✓ updated today</span> <button class="btn btn-sm btn-secondary" style="font-size:9px;padding:2px 6px" onclick="loadFC(true)">Refresh</button> <button class="btn btn-sm btn-secondary" style="font-size:9px;padding:2px 6px" onclick="openModal('modalFCImport')">Manual Import</button></span>
@@ -2200,6 +2201,20 @@ window.rhFirebase={
       <button class="btn btn-secondary" onclick="closeModal('modalImportResults')">Cancel</button>
     </div>
     <div id="resultsImportStatus" style="margin-top:8px;font-size:12px;color:#1D9E75"><span style="color:#1D9E75">Updated 1 teams successfully.</span></div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modalPicksImport">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-header"><div class="modal-title">Import 2027 Picks</div><button class="modal-close" onclick="closeModal('modalPicksImport')">✕</button></div>
+    <p style="font-size:13px;color:#888;margin-bottom:14px;line-height:1.6">Paste picks for each team separated by pipes. Teams not listed are left unchanged. Pasting a team with no picks clears their list.</p>
+    <textarea id="picksImportText" rows="5" placeholder="rhinos: R1, R2 | bookends: R1 | steelhawks: R2, R3, R4"></textarea>
+    <div style="font-family:'DM Mono',monospace;font-size:10px;color:#444;margin-top:8px;line-height:1.6">e.g. rhinos: R1, R2 | bookends: R1 | steelhawks: R2, R3</div>
+    <div style="display:flex;gap:8px;margin-top:12px">
+      <button class="btn btn-primary" onclick="processPicksImport()">Apply</button>
+      <button class="btn btn-secondary" onclick="closeModal('modalPicksImport')">Cancel</button>
+    </div>
+    <div id="picksImportStatus" style="margin-top:8px;font-size:12px"></div>
   </div>
 </div>
 
@@ -5191,6 +5206,29 @@ function loadPersistedData(){
 }
 
 // ── IMPORT RESULTS ────────────────────────────────────────────────────────────
+function processPicksImport(){
+  const raw=g('picksImportText').value.trim();
+  const statusEl=g('picksImportStatus');
+  if(!raw){statusEl.innerHTML='<span style="color:#d06040">Please paste picks data.</span>';return;}
+  let teamsUpdated=0;
+  raw.split('|').forEach(seg=>{
+    const colonIdx=seg.indexOf(':');
+    if(colonIdx===-1)return;
+    const teamId=seg.slice(0,colonIdx).trim().toLowerCase();
+    const team=TEAMS.find(t=>t.id===teamId);
+    if(!team)return;
+    const picksRaw=seg.slice(colonIdx+1).trim();
+    team.picks2027=picksRaw
+      ?picksRaw.split(',').map(p=>p.trim().toUpperCase()).filter(p=>/^R\d+$/.test(p))
+      :[];
+    teamsUpdated++;
+  });
+  if(!teamsUpdated){statusEl.innerHTML='<span style="color:#d06040">No valid team IDs found. Use IDs like: rhinos, bookends, wheel, etc.</span>';return;}
+  saveRosterData();
+  statusEl.innerHTML=`<span style="color:#1D9E75">Updated picks for ${teamsUpdated} team${teamsUpdated===1?'':'s'}.</span>`;
+  setTimeout(()=>{closeModal('modalPicksImport');renderOverview(g('mainContent'));statusEl.innerHTML='';g('picksImportText').value='';},1500);
+}
+
 function processImportResults(){
   const raw=g('resultsImportText').value.trim();
   if(!raw){g('resultsImportStatus').textContent='Please paste JSON results.';return;}
@@ -5333,7 +5371,6 @@ function processCsvImport(){
 
   // Build per-team roster from CSV
   const rosterMap = {}; // teamId -> { QB:[], RB:[], WR:[], TE:[] }
-  const picksMap  = {}; // teamId -> roundKey[] — only populated for teams seen in CSV
   const statsMap  = {}; // teamId -> { fp, ppg, proj, own }
   const playerStatsMap_local = {}; // playerStr -> {ppg, fp, proj}
   const localFAs = []; // free agent rows (blank OWNED BY)
@@ -5357,28 +5394,6 @@ function processCsvImport(){
     const { displayName, nfl } = parsePlayerName(cols[iPlayer]||'');
     const pos = (cols[iPos]||'').trim();
     const playerStr = `${displayName} (${nfl})`;
-
-    // Pick detection — handle before normal player logic
-    if(pos.toLowerCase() === 'pick'){
-      const rawName = (cols[iPlayer]||'').trim();
-      console.log('[PICK ROW] raw name:', rawName, '| POS:', pos, '| OWNED BY:', ownedBy);
-      const year = parseInt(rawName.split(' ')[0]);
-      const roundWord = rawName.split(' ')[1] || '';
-      const round = parseInt(roundWord);
-      console.log('[PICK ROW] parsed year:', year, '| roundWord:', roundWord, '| round:', round);
-      if(year === 2027 && ownedBy){
-        const pickTeamId = FFPC_TEAM_MAP[ownedBy];
-        if(pickTeamId){
-          const roundKey = 'R' + round;
-          console.log('[PICK ROW] pushing', roundKey, 'to team', pickTeamId);
-          if(!picksMap[pickTeamId]) picksMap[pickTeamId] = [];
-          picksMap[pickTeamId].push(roundKey);
-        } else {
-          console.log('[PICK ROW] no FFPC_TEAM_MAP entry for OWNED BY:', ownedBy);
-        }
-      }
-      continue; // never add picks to roster
-    }
 
     if(!ownedBy){
       if(['QB','RB','WR','TE'].includes(pos))localFAs.push({name:playerStr,pos,fcValue:getFCValue(playerStr)});
@@ -5441,13 +5456,6 @@ function processCsvImport(){
     });
     team.rostered = Object.values(r).flat().length;
     teamsUpdated++;
-  });
-
-  // Apply picks — only overwrite teams that actually had pick rows in this CSV
-  console.log('[PICKS] picksMap after import:', JSON.stringify(picksMap));
-  Object.entries(picksMap).forEach(([tid, picks]) => {
-    const team = TEAMS.find(t => t.id === tid);
-    if(team){ team.picks2027 = picks; console.log('[PICKS] set', tid, picks); }
   });
 
   // Full import: also update stats/power rankings data
