@@ -2415,7 +2415,10 @@ const TEAMS = [
 const GRADE_ORDER={S:4,A:3,B:2,C:1};
 let overviewFilter='all';
 let overviewMode='assessment';
-let gradeFilter='all'; // not persisted — resets on page load
+// Lens filter state — not persisted, resets on page load
+const LENS_FILTER_OPTIONS={grades:['S','A','B','C'],fragility:['robust','antifragile','fragile'],myGrades:['S','A','B','C','ungraded']};
+let lensFilters={grades:new Set(['S','A','B','C']),fragility:new Set(['robust','antifragile','fragile']),myGrades:new Set(['S','A','B','C','ungraded'])};
+let openFilterDropdown=null;
 let showAges=false;
 let compareA='rhinos',compareB='wheel';
 let compareMode='production'; // 'production' or 'construction'
@@ -3022,8 +3025,75 @@ function posIndicators(pos){
 function toggleOverviewLens(lens){
   overviewLenses[lens]=!overviewLenses[lens];
   if(lens==='ages')showAges=overviewLenses.ages;
-  if(lens==='myGrades'&&!overviewLenses.myGrades)gradeFilter='all';
+  if(LENS_FILTER_OPTIONS[lens]){
+    if(!overviewLenses[lens])lensFilters[lens]=new Set(LENS_FILTER_OPTIONS[lens]);
+    if(openFilterDropdown===lens)closeLensFilter();
+  }
   try{localStorage.setItem(LENSES_STORAGE_KEY,JSON.stringify(overviewLenses));}catch(e){}
+  renderOverview(g('mainContent'));
+}
+function isLensFilterActive(key){return lensFilters[key].size<LENS_FILTER_OPTIONS[key].length;}
+function anyLensFilterActive(){
+  return(overviewLenses.grades&&isLensFilterActive('grades'))||
+         (overviewLenses.fragility&&isLensFilterActive('fragility'))||
+         (overviewLenses.myGrades&&isLensFilterActive('myGrades'));
+}
+function openLensFilter(key,event){
+  if(openFilterDropdown===key){closeLensFilter();return;}
+  openFilterDropdown=key;
+  renderLensFilterPopover();
+}
+function closeLensFilter(){
+  openFilterDropdown=null;
+  const pop=document.getElementById('lensFilterPopover');
+  if(pop)pop.style.display='none';
+}
+function renderLensFilterPopover(){
+  const key=openFilterDropdown;
+  if(!key)return;
+  const anchor=document.getElementById('filterIcon-'+key);
+  if(!anchor){closeLensFilter();return;}
+  let pop=document.getElementById('lensFilterPopover');
+  if(!pop){
+    pop=document.createElement('div');
+    pop.id='lensFilterPopover';
+    pop.style.cssText='position:fixed;z-index:9999;background:#1a1a1a;border:1px solid #333;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.6);padding:12px;min-width:160px';
+    document.body.appendChild(pop);
+  }
+  const cfgs={
+    grades:{title:'Overall Floor Grade',opts:[{v:'S',l:'S',c:'#1D9E75',b:'#0a3d28'},{v:'A',l:'A',c:'#4a9ede',b:'#0a1e3a'},{v:'B',l:'B',c:'#888',b:'#2a2826'},{v:'C',l:'C',c:'#d06040',b:'#3a1510'}]},
+    fragility:{title:'Fragility',opts:[{v:'robust',l:'Robust',c:'#4a9ede',b:'#0a1e3a'},{v:'antifragile',l:'Antifragile',c:'#1D9E75',b:'#0a3d28'},{v:'fragile',l:'Fragile',c:'#d06040',b:'#3a1510'}]},
+    myGrades:{title:'My Grade',opts:[{v:'S',l:'S',c:'#1D9E75',b:'#0a3d28'},{v:'A',l:'A',c:'#4a9ede',b:'#0a1e3a'},{v:'B',l:'B',c:'#888',b:'#2a2826'},{v:'C',l:'C',c:'#d06040',b:'#3a1510'},{v:'ungraded',l:'Ungraded',c:'#555',b:'#1a1a1a'}]}
+  };
+  const cfg=cfgs[key];
+  const sel=lensFilters[key];
+  let html=`<div style="font-family:'Barlow Condensed',sans-serif;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#555;margin-bottom:8px">${cfg.title}</div>`;
+  html+=`<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:10px">`;
+  cfg.opts.forEach(o=>{
+    const on=sel.has(o.v);
+    html+=`<button onclick="event.stopPropagation();toggleLensFilterOption('${key}','${o.v}')" style="font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:600;letter-spacing:.06em;padding:3px 10px;border-radius:4px;cursor:pointer;border:1px solid ${on?o.b:'#2a2a2a'};background:${on?o.b:'transparent'};color:${on?o.c:'#444'};transition:all .12s">${o.l}</button>`;
+  });
+  html+=`</div><div style="text-align:right"><span onclick="event.stopPropagation();clearLensFilter('${key}')" style="font-family:'Barlow Condensed',sans-serif;font-size:11px;color:#4a9ede;cursor:pointer;letter-spacing:.04em">Clear</span></div>`;
+  pop.innerHTML=html;
+  pop.style.display='block';
+  const rect=anchor.getBoundingClientRect();
+  pop.style.top=(rect.bottom+6)+'px';
+  pop.style.left=Math.max(8,Math.min(rect.left,window.innerWidth-180))+'px';
+}
+function toggleLensFilterOption(key,value){
+  if(lensFilters[key].has(value))lensFilters[key].delete(value);
+  else lensFilters[key].add(value);
+  renderOverview(g('mainContent'));
+  renderLensFilterPopover();
+}
+function clearLensFilter(key){
+  lensFilters[key]=new Set(LENS_FILTER_OPTIONS[key]);
+  closeLensFilter();
+  renderOverview(g('mainContent'));
+}
+function clearAllLensFilters(){
+  Object.keys(lensFilters).forEach(k=>{lensFilters[k]=new Set(LENS_FILTER_OPTIONS[k]);});
+  closeLensFilter();
   renderOverview(g('mainContent'));
 }
 function cycleCustomGrade(teamId){
@@ -3113,10 +3183,10 @@ function getFCDelta(playerName,days){
 function renderOverview(c){
   const headerH=(document.querySelector('.app-header')?.offsetHeight||0);
   const windowFiltered=TEAMS.filter(t=>overviewFilter==='all'||t.window===overviewFilter);
-  const filtered=gradeFilter==='all'?windowFiltered:windowFiltered.filter(t=>{
-    const g=customGrades[t.id]||null;
-    return gradeFilter==='ungraded'?!g:g===gradeFilter;
-  });
+  let filtered=[...windowFiltered];
+  if(overviewLenses.grades&&isLensFilterActive('grades'))filtered=filtered.filter(t=>lensFilters.grades.has(t.overall.floor));
+  if(overviewLenses.fragility&&isLensFilterActive('fragility'))filtered=filtered.filter(t=>lensFilters.fragility.has(t.overall.frag));
+  if(overviewLenses.myGrades&&isLensFilterActive('myGrades'))filtered=filtered.filter(t=>lensFilters.myGrades.has(customGrades[t.id]||'ungraded'));
 
   const snapshotVals=getHistoricalValues();
 
@@ -3199,28 +3269,15 @@ function renderOverview(c){
   <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;position:sticky;top:${headerH}px;z-index:99;background:#0c0c0c;padding:8px 0;margin-bottom:6px;box-shadow:0 2px 8px rgba(0,0,0,0.6)">
     <span style="font-family:'DM Mono',monospace;font-size:10px;color:#444;letter-spacing:.06em;text-transform:uppercase">Lens</span>
     <div class="toggle-group">
-      <button class="toggle-btn ${overviewLenses.grades?'active':''}" onclick="toggleOverviewLens('grades')">Grades</button>
-      <button class="toggle-btn ${overviewLenses.fragility?'active':''}" onclick="toggleOverviewLens('fragility')">Fragility</button>
+      <button class="toggle-btn ${overviewLenses.grades?'active':''}" onclick="toggleOverviewLens('grades')">Grades${overviewLenses.grades?`<span id="filterIcon-grades" onclick="event.stopPropagation();openLensFilter('grades',event)" style="display:inline-flex;align-items:center;gap:2px;margin-left:5px;cursor:pointer;opacity:.8" title="Filter">▾${isLensFilterActive('grades')?'<span style="width:5px;height:5px;border-radius:50%;background:#1D9E75;display:inline-block;vertical-align:middle;margin-left:1px"></span>':''}</span>`:''}</button>
+      <button class="toggle-btn ${overviewLenses.fragility?'active':''}" onclick="toggleOverviewLens('fragility')">Fragility${overviewLenses.fragility?`<span id="filterIcon-fragility" onclick="event.stopPropagation();openLensFilter('fragility',event)" style="display:inline-flex;align-items:center;gap:2px;margin-left:5px;cursor:pointer;opacity:.8" title="Filter">▾${isLensFilterActive('fragility')?'<span style="width:5px;height:5px;border-radius:50%;background:#1D9E75;display:inline-block;vertical-align:middle;margin-left:1px"></span>':''}</span>`:''}</button>
       <button class="toggle-btn ${overviewLenses.ages?'active':''}" onclick="toggleOverviewLens('ages')">Ages</button>
       <button class="toggle-btn ${overviewLenses.trends?'active':''}" onclick="toggleOverviewLens('trends')">Trends</button>
       <button class="toggle-btn ${overviewLenses.upside?'active':''}" onclick="toggleOverviewLens('upside')">Upside</button>
       <button class="toggle-btn ${overviewLenses.values?'active':''}" onclick="toggleOverviewLens('values')">Values</button>
-      <button class="toggle-btn ${overviewLenses.myGrades?'active':''}" onclick="toggleOverviewLens('myGrades')">My Grades</button>
+      <button class="toggle-btn ${overviewLenses.myGrades?'active':''}" onclick="toggleOverviewLens('myGrades')">My Grades${overviewLenses.myGrades?`<span id="filterIcon-myGrades" onclick="event.stopPropagation();openLensFilter('myGrades',event)" style="display:inline-flex;align-items:center;gap:2px;margin-left:5px;cursor:pointer;opacity:.8" title="Filter">▾${isLensFilterActive('myGrades')?'<span style="width:5px;height:5px;border-radius:50%;background:#1D9E75;display:inline-block;vertical-align:middle;margin-left:1px"></span>':''}</span>`:''}</button>
     </div>
-  </div>
-  ${overviewLenses.myGrades?`<div style="display:flex;align-items:center;gap:6px;margin-bottom:10px;flex-wrap:wrap">
-    ${[
-      {key:'all',label:'All',color:'#666',bg:'#1e1e1e',activeBg:'#2a2a2a',activeColor:'#ccc'},
-      {key:'S',label:'S',color:'#1D9E75',bg:'#0a3d28',activeBg:'#0a3d28',activeColor:'#1D9E75'},
-      {key:'A',label:'A',color:'#4a9ede',bg:'#0a1e3a',activeBg:'#0a1e3a',activeColor:'#4a9ede'},
-      {key:'B',label:'B',color:'#888',bg:'#2a2826',activeBg:'#2a2826',activeColor:'#888'},
-      {key:'C',label:'C',color:'#d06040',bg:'#3a1510',activeBg:'#3a1510',activeColor:'#d06040'},
-      {key:'ungraded',label:'Ungraded',color:'#555',bg:'#1a1a1a',activeBg:'#242424',activeColor:'#777'}
-    ].map(f=>{
-      const isActive=gradeFilter===f.key;
-      return`<button onclick="gradeFilter='${f.key}';renderOverview(g('mainContent'))" style="font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;padding:4px 12px;border-radius:4px;cursor:pointer;border:1px solid ${isActive?(f.key==='all'?'#444':f.bg):f.bg};background:${isActive?(f.key==='all'?'#2a2a2a':f.bg):'transparent'};color:${isActive?f.activeColor:(f.key==='all'?'#555':f.color)};transition:all .15s">${f.label}</button>`;
-    }).join('')}
-  </div>`:''}  `;
+  </div>`;
 
   if(overviewMode==='assessment'){
     html+=`<div style="overflow-x:auto"><table class="overview-table">
@@ -3489,10 +3546,8 @@ function renderOverview(c){
     html+=`</tbody></table></div>`;
   }
 
-  if(overviewLenses.myGrades&&gradeFilter!=='all'){
-    const total=windowFiltered.length;
-    const shown=filtered.length;
-    html+=`<div style="font-family:'DM Mono',monospace;font-size:11px;color:#444;margin-top:10px;padding:0 2px">Showing ${shown} of ${total} teams &nbsp;·&nbsp; <span onclick="gradeFilter='all';renderOverview(g('mainContent'))" style="color:#4a9ede;cursor:pointer;text-decoration:underline;text-underline-offset:2px">Clear filter</span></div>`;
+  if(anyLensFilterActive()){
+    html+=`<div style="font-family:'DM Mono',monospace;font-size:11px;color:#444;margin-top:10px;padding:0 2px">Showing ${filtered.length} of ${windowFiltered.length} teams &nbsp;·&nbsp; <span onclick="clearAllLensFilters()" style="color:#4a9ede;cursor:pointer;text-decoration:underline;text-underline-offset:2px">Clear all filters</span></div>`;
   }
 
   c.innerHTML=html;
@@ -5640,6 +5695,9 @@ window.addEventListener('DOMContentLoaded',async()=>{
   renderOverview(g('mainContent'));
   loadFC();
   loadSleeperAges();
+  document.addEventListener('click',e=>{
+    if(!e.target.closest('#lensFilterPopover')&&!e.target.closest('[id^="filterIcon-"]'))closeLensFilter();
+  });
 });
 </script>
 
