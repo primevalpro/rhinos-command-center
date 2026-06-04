@@ -3109,6 +3109,7 @@ function getFCDelta(playerName,days){
 
 // ── OVERVIEW ──────────────────────────────────────────────────────────────────
 function renderOverview(c){
+  const headerH=(document.querySelector('.app-header')?.offsetHeight||0);
   const filtered=TEAMS.filter(t=>overviewFilter==='all'||t.window===overviewFilter);
 
   const snapshotVals=getHistoricalValues();
@@ -3189,7 +3190,7 @@ function renderOverview(c){
       </div>
     </div>
   </div>
-  <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;position:sticky;top:0;z-index:50;background:#0c0c0c;padding:8px 0;margin-bottom:6px;box-shadow:0 2px 8px rgba(0,0,0,0.6)">
+  <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;position:sticky;top:${headerH}px;z-index:99;background:#0c0c0c;padding:8px 0;margin-bottom:6px;box-shadow:0 2px 8px rgba(0,0,0,0.6)">
     <span style="font-family:'DM Mono',monospace;font-size:10px;color:#444;letter-spacing:.06em;text-transform:uppercase">Lens</span>
     <div class="toggle-group">
       <button class="toggle-btn ${overviewLenses.grades?'active':''}" onclick="toggleOverviewLens('grades')">Grades</button>
