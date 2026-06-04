@@ -5322,11 +5322,9 @@ function processCsvImport(){
     return;
   }
 
-  // Reset picks2027 for all teams before processing CSV
-  TEAMS.forEach(t => { t.picks2027 = []; });
-
   // Build per-team roster from CSV
   const rosterMap = {}; // teamId -> { QB:[], RB:[], WR:[], TE:[] }
+  const picksMap  = {}; // teamId -> roundKey[] — only populated for teams seen in CSV
   const statsMap  = {}; // teamId -> { fp, ppg, proj, own }
   const playerStatsMap_local = {}; // playerStr -> {ppg, fp, proj}
   const localFAs = []; // free agent rows (blank OWNED BY)
@@ -5354,17 +5352,20 @@ function processCsvImport(){
     // Pick detection — handle before normal player logic
     if(pos.toLowerCase() === 'pick'){
       const rawName = (cols[iPlayer]||'').trim();
+      console.log('[PICK ROW] raw name:', rawName, '| POS:', pos, '| OWNED BY:', ownedBy);
       const year = parseInt(rawName.split(' ')[0]);
+      const roundWord = rawName.split(' ')[1] || '';
+      const round = parseInt(roundWord);
+      console.log('[PICK ROW] parsed year:', year, '| roundWord:', roundWord, '| round:', round);
       if(year === 2027 && ownedBy){
         const pickTeamId = FFPC_TEAM_MAP[ownedBy];
         if(pickTeamId){
-          const pickTeam = TEAMS.find(t => t.id === pickTeamId);
-          if(pickTeam){
-            const roundWord = rawName.split(' ')[1] || '';
-            const round = parseInt(roundWord);
-            const roundKey = 'R' + round;
-            pickTeam.picks2027.push(roundKey);
-          }
+          const roundKey = 'R' + round;
+          console.log('[PICK ROW] pushing', roundKey, 'to team', pickTeamId);
+          if(!picksMap[pickTeamId]) picksMap[pickTeamId] = [];
+          picksMap[pickTeamId].push(roundKey);
+        } else {
+          console.log('[PICK ROW] no FFPC_TEAM_MAP entry for OWNED BY:', ownedBy);
         }
       }
       continue; // never add picks to roster
@@ -5431,6 +5432,13 @@ function processCsvImport(){
     });
     team.rostered = Object.values(r).flat().length;
     teamsUpdated++;
+  });
+
+  // Apply picks — only overwrite teams that actually had pick rows in this CSV
+  console.log('[PICKS] picksMap after import:', JSON.stringify(picksMap));
+  Object.entries(picksMap).forEach(([tid, picks]) => {
+    const team = TEAMS.find(t => t.id === tid);
+    if(team){ team.picks2027 = picks; console.log('[PICKS] set', tid, picks); }
   });
 
   // Full import: also update stats/power rankings data
