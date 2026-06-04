@@ -2497,15 +2497,24 @@ function loadFCFromCache(){
     if(!raw)return false;
     const parsed=JSON.parse(raw);
     if(Object.keys(parsed).length===0)return false;
-    Object.entries(parsed).forEach(([k,v])=>{fcValues[stripNameSuffix(k)]=v;});
+    Object.entries(parsed).forEach(([k,v])=>{
+      if(k.startsWith('__pick_')){
+        const r=parseInt(k.slice(7));
+        if(r>=1)fcPickValues[r]=v;
+      } else {
+        fcValues[stripNameSuffix(k)]=v;
+      }
+    });
     fcLoaded=true;
     return true;
   }catch(e){return false;}
 }
 
-function saveFCToCache(values){
+function saveFCToCache(values,pickValues){
   try{
-    localStorage.setItem(FC_STORAGE_KEY,JSON.stringify(values));
+    const combined={...values};
+    if(pickValues)Object.entries(pickValues).forEach(([r,v])=>{combined['__pick_'+r]=v;});
+    localStorage.setItem(FC_STORAGE_KEY,JSON.stringify(combined));
     localStorage.setItem(FC_TS_KEY,String(Date.now()));
   }catch(e){}
 }
@@ -2559,7 +2568,7 @@ async function loadFC(forceRefresh){
     if(Object.keys(newValues).length>50){
       Object.assign(fcValues,newValues);
       if(Object.keys(newPickValues).length>0)Object.assign(fcPickValues,newPickValues);
-      saveFCToCache(newValues);
+      saveFCToCache(newValues,newPickValues);
       fcLoaded=true;
       writeFCHistory(newValues);
       console.log(`FantasyCalc loaded: ${Object.keys(newValues).length} players, ${Object.keys(newPickValues).length} pick rounds`);
@@ -2618,7 +2627,7 @@ function processFCManualImport(){
     if(Object.keys(newValues).length===0)throw new Error('No valid entries found');
     Object.assign(fcValues,newValues);
     if(Object.keys(newPickValues).length>0)Object.assign(fcPickValues,newPickValues);
-    saveFCToCache(newValues);
+    saveFCToCache(newValues,newPickValues);
     writeFCHistory(newValues);
     fcLoaded=true;
     g('fcImportStatus').innerHTML=`<span style="color:#1D9E75">Loaded ${Object.keys(newValues).length} player values.</span>`;
